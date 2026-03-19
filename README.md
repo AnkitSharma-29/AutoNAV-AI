@@ -23,6 +23,11 @@ A premium web-based visualization tool (built with **Three.js** and **Flask**) t
 - **1-b) PID Altitude Control:** High-precision vertical stabilization using proportional-integral-derivative logic with wind disturbance rejection.
 - **1-c) GPS-Denied SLAM:** Sensor fusion using LIDAR data for lateral correction and localization in unknown 3D tunnels.
 
+### 3. **Architectural Design Choices (Why Custom?)**
+Instead of relying on heavy physics engines like Microsoft AirSim or NVIDIA Isaac Sim, this project implements a **zero-dependency, web-native kinematics engine**.
+- **Algorithmic Isolation:** By abstracting raw LIDAR ray-tracing into direct 2D/3D Occupancy Grids, we isolate and prove the core A* and PID math without external engine noise.
+- **Accessibility:** A decoupled Python Backend + Three.js Frontend means the entire autonomy visualization runs instantly in a browser without gigabytes of gaming-engine overhead.
+
 ---
 
 ## 🛠 Tech Stack
