@@ -4,15 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous Drone AI: High-Fidelity Simulator 🚁</title>
+    <title>AutoNAV-AI: Autonomous Drone Simulator 🚁</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         :root {
             --primary: #3498db;
             --bg: #020617;
-            --card: rgba(30, 41, 59, 0.7);
+            --card: rgba(15, 23, 42, 0.85);
             --text: #f8fafc;
+            --accent: #3b82f6;
+            --danger: #ef4444;
         }
 
         body {
@@ -28,44 +30,47 @@
         .sidebar {
             width: 380px;
             background: var(--card);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(25px);
             padding: 25px;
-            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
-            z-index: 10;
+            box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
             overflow-y: auto;
             border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         h1 {
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             color: #60a5fa;
             margin-bottom: 25px;
-            letter-spacing: -0.5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 15px;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            text-transform: uppercase;
         }
 
         .card {
-            background: rgba(51, 65, 85, 0.5);
-            padding: 18px;
-            border-radius: 16px;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: 20px;
             margin-bottom: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: 0.3s;
         }
+
+        .card:hover { background: rgba(30, 41, 59, 0.7); border-color: var(--accent); }
 
         h3 {
             margin-top: 0;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             margin-bottom: 15px;
         }
 
         .controls {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         label {
@@ -73,121 +78,105 @@
             color: #cbd5e1;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
         input[type="range"] {
             width: 100%;
             cursor: pointer;
+            accent-color: var(--accent);
         }
 
-        .btn {
+        .sim-btn {
             background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
             border: none;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 14px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: 700;
+            font-weight: 800;
             width: 100%;
             text-transform: uppercase;
             font-size: 0.75rem;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
         }
 
-        .btn:hover {
-            filter: brightness(1.2);
-            transform: scale(1.02);
-        }
+        .sim-btn:active { transform: scale(0.98); }
 
-        .btn-outline {
-            background: transparent;
-            border: 1px solid #3b82f6;
-            color: #3b82f6;
-        }
-
-        .status {
-            font-size: 0.7rem;
-            margin-top: 8px;
-            color: #34d399;
-            font-family: monospace;
+        .sim-btn-ai {
+            background: linear-gradient(135deg, #a855f7, #7e22ce);
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
         }
 
         #viewport {
             flex-grow: 1;
             position: relative;
-            cursor: crosshair;
         }
 
         .hud {
             position: absolute;
-            padding: 15px;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
-            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            font-family: 'JetBrains Mono', monospace;
             pointer-events: none;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 100;
+            z-index: 500;
+            font-size: 0.8rem;
         }
 
-        .hud-left {
-            top: 20px;
-            left: 20px;
-        }
-
-        .hud-right {
-            top: 20px;
-            right: 20px;
-            text-align: right;
-        }
+        .hud-left { top: 25px; left: 25px; }
+        .hud-right { top: 25px; right: 25px; text-align: right; }
 
         .toolbar {
             position: absolute;
-            bottom: 30px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--card);
-            backdrop-filter: blur(10px);
-            padding: 10px;
-            border-radius: 50px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 12px 25px;
+            border-radius: 60px;
             display: flex;
-            gap: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            z-index: 100;
+            gap: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
         }
 
         .tool-btn {
-            background: rgba(255, 255, 255, 0.1);
+            background: transparent;
             border: none;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 25px;
+            color: #94a3b8;
+            padding: 10px 20px;
+            border-radius: 30px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 8px;
-            transition: 0.2s;
+            gap: 10px;
+            transition: 0.3s;
         }
-        .tool-btn:hover { background: rgba(59, 130, 246, 0.3); transform: translateY(-2px); }
-        .tool-btn.active { background: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 15px rgba(59,130,246,0.5); }
 
-        .controls-legend {
-            position: absolute; top: 100px; left: 15px; background: rgba(15, 23, 42, 0.85);
-            padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-            color: #94a3b8; font-size: 0.75rem; pointer-events: none;
-            backdrop-filter: blur(5px); z-index: 1000;
-        }
-        .controls-legend b { color: #f8fafc; }
-        
-        .sim-btn {
-            background: #3b82f6; color: white; border: none; padding: 12px;
-            border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%;
-            text-transform: uppercase; font-size: 0.75rem; margin-bottom: 5px;
-        }
-        .sim-btn-ai {
-            background: #a855f7; border: 1px solid #c084fc; box-shadow: 0 0 15px rgba(168,85,247,0.3);
-        }
+        .tool-btn.active { color: white; background: var(--accent); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+
+        .legend-text { color: #94a3b8; font-size: 0.7rem; line-height: 1.6; margin-top: 10px; }
+
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Cursor changes based on mode */
+        #viewport.mode-start canvas { cursor: crosshair !important; }
+        #viewport.mode-goal canvas { cursor: crosshair !important; }
+        #viewport.mode-obs canvas { cursor: cell !important; }
     </style>
 </head>
 
@@ -198,551 +187,553 @@
         <div class="card">
             <h3>Environment Overrides</h3>
             <div class="controls">
-                <label>Rain: <span id="rain-val">Low</span></label>
+                <label>Real-time Rain: <span id="rain-val">Low</span></label>
                 <input type="range" id="rain-slider" min="0" max="10" value="2" oninput="updateWeather()">
-                <label>Simulation Mode:</label>
-                <select id="sim-preset"
-                    style="background:#1e293b; color:white; border:none; padding:8px; border-radius:5px;">
-                    <option value="mountains">Mountains</option>
-                    <option value="city">Urban Maze</option>
-                </select>
-                <div class="preset-group">
-                    <button class="preset-btn" onclick="applyWeather('rain')">🌧️ Rain</button>
-                    <button class="preset-btn" onclick="applyWeather('wind')">🌪️ Wind</button>
-                    <button class="preset-btn" onclick="applyWeather('both')">🌩️ Storm</button>
+                <label>
+                    Auto-Obstacles
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="auto-obs-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </label>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Module 1-A: Intelligence</h3>
+            <div class="controls">
+                <label>Sensing Density: <span id="astar-den-val">20%</span></label>
+                <input type="range" id="astar-den" min="5" max="45" value="20" oninput="updateVal('astar-den')">
+                <button class="sim-btn" onclick="runSim('astar')">EXECUTE MISSION</button>
+                <button class="sim-btn sim-btn-ai" onclick="toggleAuto()" id="btn-auto">🤖 ACTIVATE BRAIN</button>
+                <div id="astar-status" class="status" style="font-size:0.8rem; color:#60a5fa; margin-top:5px; font-weight:bold">🟢 Sensing: ONLINE</div>
+                
+                <div class="legend-text">
+                    <b>OMNI-SENSE 3D AVOIDANCE</b><br>
+                    • 5-Ray directional scanning<br>
+                    • Dynamic evasion force vectors<br>
+                    • 1.2m active safety bubble
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <h3>Module 1-b: Vertical PID</h3>
+            <h3>Module 1-B: Dynamics</h3>
             <div class="controls">
-                <label>Altitude: <span id="pid-alt-val">10m</span></label>
+                <label>Target ALT: <span id="pid-alt-val">10m</span></label>
                 <input type="range" id="pid-alt" min="1" max="25" value="10" oninput="updateVal('pid-alt')">
-                <label>Wind/Turbulence: <span id="pid-wind-val">2.0</span></label>
-                <input type="range" id="pid-wind" min="0" max="10" value="2" oninput="updateVal('pid-wind')">
-                <button class="btn" onclick="runSim('pid')">Deploy Flight Logic</button>
-                <div id="pid-status" class="status"></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>Module 1-a: Path Planning</h3>
-            <div class="controls">
-                <label>Obstacle Density: <span id="astar-den-val">20%</span></label>
-                <input type="range" id="astar-den" min="5" max="45" value="20" oninput="updateVal('astar-den')">
-                <button class="sim-btn" onclick="runSim('astar')">COMPUTE & NAVIGATE</button>
-                <button class="sim-btn sim-btn-ai" onclick="toggleAuto()" id="btn-auto">🤖 LAUNCH AI AUTOPILOT</button>
-                <div id="astar-status" class="status">Ready for Takeoff</div>
+                <button class="sim-btn" onclick="runSim('pid')">Deploy Dynamics</button>
+                <div id="pid-status" class="status" style="font-size:0.7rem; color:#94a3b8; margin-top:5px"></div>
             </div>
         </div>
     </div>
 
     <div id="viewport">
         <div class="hud hud-left">
-            <b>JETSON AGX ORIN</b><br>
-            TEMP: 44°C<br>
-            LOAD: 18%<br>
-            GPS: <b style="color:#ef4444">DENIED</b>
+            <span style="color:var(--accent)">OMNI-SENSE: ACTIVE</span><br>
+            PLATFORM: JETSON AGX ORIN<br>
+            PROXIMITY: <span id="hud-proximity" style="color:#f8fafc">SAFE</span><br>
+            AESTHETIC: HIGH-FIDELITY
         </div>
         <div class="hud hud-right" id="telemetry">
-            <b>LIVE TELEMETRY</b><br>
-            ALT: <span id="tel-alt">0.00</span>m<br>
-            DIST: <span id="tel-dist">---</span>m<br>
-            BAT: 88%
+            <b>TELEMETRY</b><br>
+            ALT-Z: <span id="tel-alt">0.00</span>m<br>
+            VEL-X: <span id="tel-vx">0.00</span><br>
+            VEL-Y: <span id="tel-vy">0.00</span>
         </div>
 
         <div class="toolbar">
-            <button class="tool-btn active" onclick="setMode('explore')" id="btn-explore">🔍 Explore</button>
-            <button class="tool-btn" onclick="setMode('start')" id="btn-start">📍 Set Start</button>
-            <button class="tool-btn" onclick="setMode('goal')" id="id-goal">🏁 Set Goal</button>
-            <button class="tool-btn" onclick="setMode('obs')" id="btn-obs">🚧 Add Obstacle</button>
-            <button class="tool-btn" onclick="clearMarkers()" style="background:rgba(239, 68, 68, 0.2)">🗑 Clear</button>
-        </div>
-
-        <div class="controls-legend">
-            <b>FLIGHT CONTROLS</b><br>
-            • <b>W/S/Arrows</b>: Pitch (Fwd/Bwd)<br>
-            • <b>A/D/Arrows</b>: Roll (L/R)<br>
-            • <b>Q/E</b>: Yaw (Rotate)<br>
-            • <b>Shift/Ctrl</b>: Altitude (Up/Down)
+            <button class="tool-btn active" onclick="setMode('explore')" id="btn-explore">🔍 VIEW</button>
+            <button class="tool-btn" onclick="setMode('start')" id="btn-start">📍 START</button>
+            <button class="tool-btn" onclick="setMode('goal')" id="btn-goal">🏁 GOAL</button>
+            <button class="tool-btn" onclick="setMode('obs')" id="btn-obs">🚧 OBSTACLE</button>
+            <button class="tool-btn" onclick="clearMarkers()" style="background:rgba(239, 68, 68, 0.15)">🗑 CLEAR</button>
         </div>
     </div>
 
     <script>
+        /* ═══════════════════════════════════════════════════
+           GLOBAL STATE
+        ═══════════════════════════════════════════════════ */
+        let scene, camera, renderer, drone, droneBody, fpvCamera, rainParticles, terrain, controls;
+        let startMarker, goalMarker, autoObstacles = [], manualObstacles = [];
+        const collidableObjects = []; 
+        let slamPoints = []; 
+        let isManualCrash = false, isAutoPilot = false, fallVel = 0;
+        let placementMode = 'explore';
+        
+        let clock = new THREE.Clock();
+        let velocity = new THREE.Vector3(0,0,0);
+        let acceleration = new THREE.Vector3(0,0,0);
+        let currentTilt = { pitch: 0, roll: 0 };
+        let targetTilt = { pitch: 0, roll: 0 };
+        const DRAG = 0.95, THRUST = 45.0, TILT_SPEED = 12.0;
+
+        let mouse = new THREE.Vector2(), raycaster = new THREE.Raycaster();
+        const container = document.getElementById('viewport');
+        let arenaFloor; // Direct reference to the floor mesh
+        let clickPlane;  // Invisible plane for raycasting
+
         function updateVal(id) {
             const val = document.getElementById(id).value;
             const span = document.getElementById(id + '-val');
             if (id === 'astar-den') span.innerText = val + '%';
-            else span.innerText = (id === 'pid-wind' ? (val / 1).toFixed(1) : val + 'm');
+            else span.innerText = val + 'm';
         }
 
-        function applyWeather(mode) {
-            const rain = document.getElementById('rain-slider');
-            const wind = document.getElementById('pid-wind');
-            if (mode === 'rain') { rain.value = 10; wind.value = 2; }
-            else if (mode === 'wind') { rain.value = 0; wind.value = 10; }
-            else { rain.value = 10; wind.value = 10; }
-            updateWeather();
-            updateVal('pid-wind');
-        }
-
-        let scene, camera, renderer, drone, droneBody, fpvCamera, rainParticles, terrain, controls;
-        let startMarker, goalMarker;
-        let manualObstacles = [];
-        const collidableObjects = []; // Unified tracking for HARD collisions
-        let slamPoints = []; 
-        let isManualCrash = false;
-        let isAutoPilot = false;
-        let fallVel = 0;
-        let placementMode = 'explore';
-        let mouse = new THREE.Vector2();
-        let raycaster = new THREE.Raycaster();
-        const container = document.getElementById('viewport');
-
+        /* ═══════════════════════════════════════════════════
+           INIT 3D SCENE
+        ═══════════════════════════════════════════════════ */
         function init3D() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x020617);
-            scene.fog = new THREE.FogExp2(0x020617, 0.015);
+            scene.fog = new THREE.FogExp2(0x020817, 0.012);
 
-            camera = new THREE.PerspectiveCamera(70, container.clientWidth / container.clientHeight, 0.1, 2000);
-            camera.position.set(20, 15, 20);
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 4000);
+            camera.position.set(12, 18, 12);
+            camera.lookAt(0, 0, 0);
             fpvCamera = new THREE.PerspectiveCamera(90, 320 / 200, 0.1, 1000);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
             renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
+            // Resize handler
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth, h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+
             controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 0, 0);
             controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera under floor
 
-
-            const ambient = new THREE.AmbientLight(0x404040, 1.2);
-            scene.add(ambient);
-            const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+            scene.add(new THREE.AmbientLight(0x404040, 1.5));
+            const sun = new THREE.DirectionalLight(0x3b82f6, 1.2);
             sun.position.set(50, 100, 50);
             sun.castShadow = true;
             scene.add(sun);
 
-            createTerrain();
-            createWeather();
-            createDrone();
+            createTerrain(); createWeather(); createDrone();
 
-            const keys = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false, ctrl: false, up: false, down: false, left: false, right: false };
+            // ───────────────────────────────────────────────
+            // KEY FIX: Keyboard controls
+            // ───────────────────────────────────────────────
+            const keys = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false, ctrl: false };
             window.addEventListener('keydown', (e) => { 
                 const key = e.key.toLowerCase();
-                if (key === 'w' || key === 'arrowup') keys.w = keys.up = true;
-                if (key === 'a' || key === 'arrowleft') keys.a = keys.left = true;
-                if (key === 's' || key === 'arrowdown') keys.s = keys.down = true;
-                if (key === 'd' || key === 'arrowright') keys.d = keys.right = true;
-                if (key === 'q') keys.q = true;
-                if (key === 'e') keys.e = true;
-                if (key === 'shift') keys.shift = true;
-                if (key === 'control') keys.ctrl = true;
+                if (key==='w'||key==='arrowup') keys.w=true; if (key==='a'||key==='arrowleft') keys.a=true;
+                if (key==='s'||key==='arrowdown') keys.s=true; if (key==='d'||key==='arrowright') keys.d=true;
+                if (key==='q') keys.q=true; if (key==='e') keys.e=true;
+                if (key==='shift') keys.shift=true; if (key==='control') keys.ctrl=true;
                 scene.userData.keys = keys;
             });
             window.addEventListener('keyup', (e) => { 
                 const key = e.key.toLowerCase();
-                if (key === 'w' || key === 'arrowup') keys.w = keys.up = false;
-                if (key === 'a' || key === 'arrowleft') keys.a = keys.left = false;
-                if (key === 's' || key === 'arrowdown') keys.s = keys.down = false;
-                if (key === 'd' || key === 'arrowright') keys.d = keys.right = false;
-                if (key === 'q') keys.q = false;
-                if (key === 'e') keys.e = false;
-                if (key === 'shift') keys.shift = false;
-                if (key === 'control') keys.ctrl = false;
+                if (key==='w'||key==='arrowup') keys.w=false; if (key==='a'||key==='arrowleft') keys.a=false;
+                if (key==='s'||key==='arrowdown') keys.s=false; if (key==='d'||key==='arrowright') keys.d=false;
+                if (key==='q') keys.q=false; if (key==='e') keys.e=false;
+                if (key==='shift') keys.shift=false; if (key==='control') keys.ctrl=false;
                 scene.userData.keys = keys;
+            });
+
+            // ───────────────────────────────────────────────
+            // KEY FIX: Click handling that WORKS with OrbitControls
+            // The trick: We use 'click' (not mousedown), and we
+            // DISABLE OrbitControls when in placement mode so it
+            // doesn't consume the event.
+            // ───────────────────────────────────────────────
+            renderer.domElement.addEventListener('click', function(e) {
+                if (placementMode === 'explore') return; // Let OrbitControls handle it
+                
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                placeMarker();
             });
 
             animate();
         }
 
+        /* ═══════════════════════════════════════════════════
+           TERRAIN
+        ═══════════════════════════════════════════════════ */
         function createTerrain() {
-            // Central Flat Arena for precise placement (20x20)
-            const arenaGeo = new THREE.PlaneGeometry(20, 20);
-            const arena = new THREE.Mesh(arenaGeo, new THREE.MeshStandardMaterial({ color: 0x0f172a }));
-            arena.rotation.x = -Math.PI / 2;
-            arena.receiveShadow = true;
-            arena.name = "arena";
-            scene.add(arena);
+            arenaFloor = new THREE.Mesh(
+                new THREE.PlaneGeometry(20, 20), 
+                new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 0.9, emissive: 0x1e3a8a, emissiveIntensity: 0.2, side: THREE.DoubleSide })
+            );
+            arenaFloor.rotation.x = -Math.PI / 2; 
+            arenaFloor.receiveShadow = true; 
+            arenaFloor.name = "arena"; 
+            scene.add(arenaFloor);
 
-            // Precision Chessboard Grid mapping exactly to A*
-            const grid = new THREE.GridHelper(20, 20, 0x3b82f6, 0x334155);
-            grid.position.y = 0.01;
+            // INVISIBLE CLICK TARGET — covers entire viewable area
+            clickPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(200, 200),
+                new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
+            );
+            clickPlane.rotation.x = -Math.PI / 2;
+            clickPlane.position.y = 0.001; // Slightly above floor
+            clickPlane.name = "clickplane";
+            scene.add(clickPlane);
+
+            const grid = new THREE.GridHelper(20, 20, 0x60a5fa, 0x1e293b); 
+            grid.position.y = 0.01; 
             scene.add(grid);
 
-            // Procedural Mountains (Background)
-            const bgGeo = new THREE.PlaneGeometry(300, 300, 64, 64);
+            const bgGeo = new THREE.PlaneGeometry(300, 300, 48, 48); 
             const pos = bgGeo.attributes.position;
-            for (let i = 0; i < pos.count; i++) {
-                const x = pos.getX(i), y = pos.getY(i);
-                const dist = Math.sqrt(x * x + y * y);
-                const h = dist < 12 ? 0 : Math.sin(x / 10) * Math.cos(y / 10) * 3 + (dist - 12) * 0.3;
-                pos.setZ(i, h);
+            for (let i = 0; i < pos.count; i++) { 
+                pos.setZ(i, (Math.sqrt(pos.getX(i)**2 + pos.getY(i)**2) < 12) ? 0 : Math.sin(pos.getX(i)/15)*Math.cos(pos.getY(i)/15)*5 + (Math.sqrt(pos.getX(i)**2 + pos.getY(i)**2)-12)*0.4); 
             }
-            bgGeo.computeVertexNormals();
-            terrain = new THREE.Mesh(bgGeo, new THREE.MeshStandardMaterial({ color: 0x1e293b, flatShading: true }));
-            terrain.rotation.x = -Math.PI / 2;
-            terrain.position.y = -0.1;
-            terrain.receiveShadow = true;
-            terrain.name = "terrain";
+            bgGeo.computeVertexNormals(); 
+            terrain = new THREE.Mesh(bgGeo, new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.9, flatShading: true }));
+            terrain.rotation.x = -Math.PI / 2; 
+            terrain.position.y = -0.15; 
+            terrain.name = "terrain"; 
             scene.add(terrain);
         }
 
         function createWeather() {
-            const geo = new THREE.BufferGeometry();
-            const count = 15000;
-            const posArr = new Float32Array(count * 3);
-            for (let i = 0; i < count * 3; i += 3) {
-                posArr[i] = (Math.random() - 0.5) * 300;
-                posArr[i + 1] = Math.random() * 100;
-                posArr[i + 2] = (Math.random() - 0.5) * 300;
-            }
+            const count = 3000; const geo = new THREE.BufferGeometry(); const posArr = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) { posArr[i] = (Math.random()-0.5)*300; posArr[i+1] = Math.random()*100; posArr[i+2] = (Math.random()-0.5)*300; }
             geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-            rainParticles = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1 }));
-            scene.add(rainParticles);
+            rainParticles = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x60a5fa, size: 0.14, transparent: true, opacity: 0.6 })); scene.add(rainParticles);
         }
 
         function createDrone() {
-            drone = new THREE.Group();
-            droneBody = new THREE.Group();
-
-            // Central Hub
-            const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 }));
+            drone = new THREE.Group(); droneBody = new THREE.Group();
+            const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.1 }));
             droneBody.add(hub);
-
-            // X-Arms
-            const armMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
-            const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 2.5), armMat); arm1.rotation.y = Math.PI / 4; droneBody.add(arm1);
-            const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 2.5), armMat); arm2.rotation.y = -Math.PI / 4; droneBody.add(arm2);
-
-            // Rotors and LEDs
-            const rotorMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
-            const positions = [[1, 1, 0xff0000], [1, -1, 0xff0000], [-1, 1, 0x00ff00], [-1, -1, 0x00ff00]];
-            positions.forEach(p => {
-                const dist = 0.85;
-                const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.2), armMat);
-                motor.position.set(p[0] * dist, 0.1, p[1] * dist);
-                droneBody.add(motor);
-
-                const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.02), rotorMat);
-                rotor.position.set(p[0] * dist, 0.2, p[1] * dist);
-                rotor.name = "rotor";
-                droneBody.add(rotor);
-
-                const led = new THREE.PointLight(p[2], 1, 3);
-                led.position.set(p[0] * dist, -0.1, p[1] * dist);
-                droneBody.add(led);
-
-                const ledMesh = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshBasicMaterial({ color: p[2] }));
-                ledMesh.position.copy(led.position);
-                droneBody.add(ledMesh);
+            const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 2.6), new THREE.MeshStandardMaterial({color:0x1e293b})); arm1.rotation.y = Math.PI/4; droneBody.add(arm1);
+            const arm2 = arm1.clone(); arm2.rotation.y = -Math.PI/4; droneBody.add(arm2);
+            [[1,1], [1,-1], [-1,1], [-1,-1]].forEach(p => {
+                const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.02, 16), new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4, side: THREE.DoubleSide }));
+                rotor.position.set(p[0]*0.9, 0.25, p[1]*0.9); rotor.name = "rotor"; droneBody.add(rotor);
+                const glow = new THREE.PointLight(p[0]>0?0x3b82f6:0xef4444, 1, 3); glow.position.set(p[0]*1.2, 0, p[1]*1.2); droneBody.add(glow);
             });
-
-            // Landing Gear
-            const skidMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const skid1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), skidMat); skid1.position.set(0.4, -0.3, 0); skid1.rotation.x = Math.PI / 2; droneBody.add(skid1);
-            const skid2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), skidMat); skid2.position.set(-0.4, -0.3, 0); skid2.rotation.x = Math.PI / 2; droneBody.add(skid2);
-            const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.4), skidMat); leg1.position.set(0.4, -0.15, 0); droneBody.add(leg1);
-            const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.4), skidMat); leg2.position.set(-0.4, -0.15, 0); droneBody.add(leg2);
-
-            // FPV Camera Gimbal (Front Facing -Z)
-            const gimbal = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-            gimbal.position.set(0, -0.15, -0.4);
-            droneBody.add(gimbal);
-            fpvCamera.position.set(0, -0.15, -0.5);
-            fpvCamera.lookAt(0, -0.15, -10);
-            droneBody.add(fpvCamera);
-
-            drone.add(droneBody);
-            drone.scale.set(0.15, 0.15, 0.15);
-            drone.position.y = 0.05; // Ground level
-            scene.add(drone);
+            fpvCamera.position.set(0, 0, -0.6); fpvCamera.lookAt(0, 0, -10); droneBody.add(fpvCamera);
+            drone.add(droneBody); drone.scale.set(0.15, 0.15, 0.15); drone.position.set(0, 0.05, 0); scene.add(drone);
         }
 
+        /* ═══════════════════════════════════════════════════
+           MODE SWITCHING — THE KEY FIX
+           When in placement mode, DISABLE OrbitControls so 
+           clicks go to our handler, not to orbit rotation.
+        ═══════════════════════════════════════════════════ */
         function setMode(mode) {
-            placementMode = mode;
+            placementMode = mode; 
+            
+            // Disable orbit controls when placing markers
+            if (controls) {
+                controls.enabled = (mode === 'explore');
+            }
+            
+            // Update cursor style on viewport
+            container.className = '';
+            if (mode !== 'explore') container.classList.add('mode-' + mode);
+            
+            // UI Button Highlighting
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.getElementById('btn-' + mode) || document.getElementById('id-goal');
+            const btn = document.getElementById('btn-' + mode);
             if (btn) btn.classList.add('active');
+            
+            // Status hint
+            const status = document.getElementById('astar-status');
+            const hints = {
+                'explore': '🟢 Sensing: ONLINE — Rotate/zoom freely',
+                'start':   '📍 Click on the grid to place GREEN start point',
+                'goal':    '🏁 Click on the grid to place BLUE goal point',
+                'obs':     '🚧 Click on the grid to place RED obstacles'
+            };
+            status.innerText = hints[mode] || '🟢 Sensing: ONLINE';
         }
 
-        function onMapClick(event) {
-            if (placementMode === 'explore') return;
+        /* ═══════════════════════════════════════════════════
+           PLACE MARKER — MATHEMATICAL ray-plane intersection
+           Bypasses Three.js raycaster entirely (100% reliable)
+        ═══════════════════════════════════════════════════ */
+        function placeMarker() {
+            const status = document.getElementById('astar-status');
+            
+            // Update matrices
+            camera.updateMatrixWorld();
+            
+            // Build a ray from camera through mouse position (pure math)
+            const rayOrigin = new THREE.Vector3();
+            const rayDir = new THREE.Vector3();
+            
+            // Unproject mouse NDC to world space
+            const nearPoint = new THREE.Vector3(mouse.x, mouse.y, 0).unproject(camera);
+            const farPoint  = new THREE.Vector3(mouse.x, mouse.y, 1).unproject(camera);
+            
+            rayOrigin.copy(nearPoint);
+            rayDir.copy(farPoint).sub(nearPoint).normalize();
+            
+            // Intersect with y=0 ground plane (simple math: t = -origin.y / dir.y)
+            if (Math.abs(rayDir.y) < 0.0001) {
+                // Ray is parallel to ground — extremely rare
+                status.innerText = '⚠️ Point camera downward and try again.';
+                return;
+            }
+            
+            const t = -rayOrigin.y / rayDir.y;
+            
+            if (t < 0) {
+                // Intersection is behind camera
+                status.innerText = '⚠️ Click on the grid area.';
+                return;
+            }
+            
+            // Compute the 3D hit point on the y=0 plane
+            const hitX = rayOrigin.x + rayDir.x * t;
+            const hitZ = rayOrigin.z + rayDir.z * t;
+            
+            processHit(new THREE.Vector3(hitX, 0, hitZ), status);
+        }
 
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(scene.children, true);
-            const hit = intersects.find(i => i.object.name === "arena" || i.object.name === "terrain");
+        
+        function processHit(pt, status) {
+            // Clamp to grid instead of rejecting — much easier to use!
+            let gx = Math.floor(pt.x) + 0.5;
+            let gz = Math.floor(pt.z) + 0.5;
+            gx = Math.max(-9.5, Math.min(9.5, gx));
+            gz = Math.max(-9.5, Math.min(9.5, gz));
 
-            if (hit) {
-                const pt = hit.point;
-                // Precision Snapping to 1x1 grid (-10 to 10)
-                const gx = Math.floor(pt.x) + 0.5;
-                const gz = Math.floor(pt.z) + 0.5;
+            const backendX = Math.round(gx + 9.5);
+            const backendZ = Math.round(gz + 9.5);
 
-                if (gx < -9.5 || gx > 9.5 || gz < -9.5 || gz > 9.5) return;
-
-                // Backend grid indices (0-19)
-                const backendX = Math.round(gx + 9.5);
-                const backendZ = Math.round(gz + 9.5);
-
-                if (placementMode === 'start') {
-                    if (startMarker) scene.remove(startMarker);
-                    startMarker = new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshStandardMaterial({ color: 0x22c55e }));
-                    startMarker.position.set(gx, 0.4, gz);
-                    startMarker.castShadow = true;
-                    scene.add(startMarker);
-                    drone.position.set(gx, 5, gz);
-                } else if (placementMode === 'goal') {
-                    if (goalMarker) scene.remove(goalMarker);
-                    goalMarker = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.8), new THREE.MeshStandardMaterial({ color: 0x3b82f6 }));
-                    goalMarker.position.set(gx, 0.75, gz);
-                    goalMarker.castShadow = true;
-                    scene.add(goalMarker);
-                } else if (placementMode === 'obs') {
-                    const obsH = 2 + Math.random() * 2;
-                    const obs = new THREE.Mesh(new THREE.BoxGeometry(0.95, obsH, 0.95), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
-                    obs.position.set(gx, obsH / 2, gz);
-                    obs.castShadow = true;
-                    scene.add(obs);
-                    manualObstacles.push({ x: backendX, z: backendZ, mesh: obs });
-                    collidableObjects.push(obs); // Track for collisions
-                }
+            if (placementMode === 'start') {
+                if (startMarker) scene.remove(startMarker);
+                
+                // Green glowing pillar — uses MeshBasicMaterial (no lighting needed)
+                startMarker = new THREE.Group();
+                const pillar = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.25, 0.25, 6, 16), 
+                    new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.7 })
+                );
+                pillar.position.y = 3; // Center the 6-unit tall cylinder
+                startMarker.add(pillar);
+                
+                // Glowing sphere on top
+                const sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.4, 16, 16),
+                    new THREE.MeshBasicMaterial({ color: 0x4ade80 })
+                );
+                sphere.position.y = 6.2;
+                startMarker.add(sphere);
+                
+                // Green point light
+                const light = new THREE.PointLight(0x22c55e, 3, 15);
+                light.position.y = 3;
+                startMarker.add(light);
+                
+                startMarker.position.set(gx, 0, gz);
+                scene.add(startMarker);
+                
+                // Move drone to start
+                drone.position.set(gx, 1.0, gz);
+                velocity.set(0,0,0);
+                
+                status.innerText = `✅ START placed at Grid(${backendX}, ${backendZ})`;
+                
+            } else if (placementMode === 'goal') {
+                if (goalMarker) scene.remove(goalMarker);
+                
+                // Blue glowing pillar
+                goalMarker = new THREE.Group();
+                const pillar = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.25, 0.25, 10, 16), 
+                    new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.7 })
+                );
+                pillar.position.y = 5;
+                goalMarker.add(pillar);
+                
+                // Blue box on top (goal flag)
+                const flag = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.6, 0.6, 0.6),
+                    new THREE.MeshBasicMaterial({ color: 0x60a5fa })
+                );
+                flag.position.y = 10.5;
+                goalMarker.add(flag);
+                
+                // Blue point light
+                const light = new THREE.PointLight(0x3b82f6, 3, 15);
+                light.position.y = 5;
+                goalMarker.add(light);
+                
+                goalMarker.position.set(gx, 0, gz);
+                scene.add(goalMarker);
+                
+                status.innerText = `✅ GOAL placed at Grid(${backendX}, ${backendZ})`;
+                
+            } else if (placementMode === 'obs') {
+                const h = 3 + Math.random() * 3;
+                const obs = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.9, h, 0.9), 
+                    new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85 })
+                );
+                obs.position.set(gx, h / 2, gz);
+                scene.add(obs);
+                manualObstacles.push({ x: backendX, z: backendZ, mesh: obs });
+                collidableObjects.push(obs);
+                
+                status.innerText = `🚧 Obstacle at Grid(${backendX}, ${backendZ})`;
             }
         }
 
+        /* ═══════════════════════════════════════════════════
+           CLEAR MARKERS
+        ═══════════════════════════════════════════════════ */
         function clearMarkers() {
             if (startMarker) { scene.remove(startMarker); startMarker = null; }
             if (goalMarker) { scene.remove(goalMarker); goalMarker = null; }
-            manualObstacles.forEach(o => scene.remove(o.mesh));
+            
+            manualObstacles.forEach(o => { if (o.mesh) scene.remove(o.mesh); });
+            autoObstacles.forEach(o => { scene.remove(o); });
             manualObstacles = [];
+            autoObstacles = [];
             collidableObjects.length = 0;
-            slamPoints.forEach(p => scene.remove(p));
+            
+            slamPoints.forEach(p => scene.remove(p)); 
             slamPoints = [];
-            isManualCrash = false;
-            isAutoPilot = false;
+            
+            isManualCrash = isAutoPilot = false; 
+            velocity.set(0,0,0);
+            drone.position.set(0, 0.05, 0);
+            
+            document.getElementById('astar-status').innerText = '🗑️ Cleared all markers. Ready.';
+            setMode('explore');
         }
 
         function toggleAuto() {
             isAutoPilot = !isAutoPilot;
             const btn = document.getElementById('btn-auto');
-            btn.style.background = isAutoPilot ? '#ef4444' : '#a855f7';
-            btn.innerText = isAutoPilot ? '🛑 STOP AUTOPILOT' : '🤖 LAUNCH AI AUTOPILOT';
-            document.getElementById('astar-status').innerText = isAutoPilot ? 'AI ORCHESTRATOR ENGAGED' : 'Ready';
+            btn.style.background = isAutoPilot ? '#ef4444' : 'linear-gradient(135deg, #a855f7, #7e22ce)';
+            btn.innerText = isAutoPilot ? '🛑 STOP BRAIN' : '🤖 ACTIVATE BRAIN';
         }
 
         function runSim(type) {
-            const status = document.getElementById(type + '-status');
-            const btn = document.querySelector(`button[onclick="runSim('${type}')"]`);
-            const oldText = btn.innerText;
-            btn.innerText = "⏳ LOADING...";
-            status.innerText = 'Calculating Optimal Trajectory...';
+            const status = document.getElementById(type + '-status'); status.innerText = 'Initializing...';
+            let params = `?density=${document.getElementById('astar-den').value/100}`;
+            if (startMarker) params += `&start=${Math.floor(startMarker.position.x+10)},${Math.floor(startMarker.position.z+10)}`;
+            if (goalMarker) params += `&goal=${Math.floor(goalMarker.position.x+10)},${Math.floor(goalMarker.position.z+10)}`;
+            const obsStr = manualObstacles.map(o => `${o.x},${o.z}`).join(';');
+            if (obsStr) params += `&manual_obs=${obsStr}`;
+            if (type === 'pid') params += `&altitude=${document.getElementById('pid-alt').value}`;
 
-            let params = `?density=${document.getElementById('astar-den').value / 100}`;
-            if (type === 'pid') {
-                params = `?altitude=${document.getElementById('pid-alt').value}&wind=${document.getElementById('pid-wind').value}`;
-            } else if (type === 'astar') {
-                if (startMarker) params += `&start=${Math.round(startMarker.position.x + 9.5)},${Math.round(startMarker.position.z + 9.5)}`;
-                if (goalMarker) params += `&goal=${Math.round(goalMarker.position.x + 9.5)},${Math.round(goalMarker.position.z + 9.5)}`;
-                if (manualObstacles.length > 0) {
-                    const obsStr = manualObstacles.map(o => `${o.x},${o.z}`).join(';');
-                    params += `&manual_obs=${obsStr}`;
-                }
-            }
-
-            fetch('/run/' + type + params)
-                .then(res => res.json())
-                .then(data => {
-                    btn.innerText = oldText;
-                    if (data.success) {
-                        fetch(`/static/${type}_data.json?` + Date.now())
-                            .then(res => res.json())
-                            .then(sim => {
-                                const path = sim.path || sim;
-                                if (path.length === 0) {
-                                    status.innerText = 'FAILED: Path blocked by obstacles!';
-                                    status.style.color = '#ef4444'; // Red
-                                } else {
-                                    if (sim.obstacles) {
-                                        sim.obstacles.forEach(o => {
-                                            const obsH = 2 + Math.random()*2;
-                                            const obs = new THREE.Mesh(new THREE.BoxGeometry(0.95, obsH, 0.95), new THREE.MeshStandardMaterial({color: 0x64748b}));
-                                            obs.position.set(o.x - 9.5, obsH/2, o.z - 9.5);
-                                            obs.castShadow = true;
-                                            scene.add(obs);
-                                            collidableObjects.push(obs); 
-                                        });
-                                    }
-                                    status.innerText = 'Ready! Flying...';
-                                    status.style.color = '#34d399'; // Green
-                                    animateFlight(path, type);
-                                }
-                            });
-                    } else {
-                        status.innerText = 'Error: ' + data.error;
-                        status.style.color = '#ef4444';
+            fetch(`/run/${type}${params}`).then(res => res.json()).then(data => {
+                if (!data.success) { status.innerText = 'Error!'; return; }
+                fetch(`/static/${type}_data.json?` + Date.now()).then(res => res.json()).then(sim => {
+                    const path = sim.path || sim; if (path.length === 0) return status.innerText = 'Blocked!';
+                    if (document.getElementById('auto-obs-toggle').checked && sim.obstacles) {
+                        autoObstacles.forEach(o => scene.remove(o)); autoObstacles = [];
+                        sim.obstacles.forEach(o => {
+                            const h = 2 + Math.random()*3;
+                            const obs = new THREE.Mesh(new THREE.BoxGeometry(1.1, h, 1.1), new THREE.MeshStandardMaterial({color: 0x334155}));
+                            obs.position.set(o.x - 9.5, h/2, o.z - 9.5); scene.add(obs); autoObstacles.push(obs); collidableObjects.push(obs); 
+                        });
                     }
+                    status.innerText = 'Sim Active'; isAutoPilot = true; toggleAuto();
                 });
-        }
-
-        function animateFlight(path, type) {
-            let phase = 'takeoff';
-            let i = 0;
-            let flightFallVel = 0;
-            const flightAlt = 2.0; // Relative to the massive chessboard scale
-            const groundAlt = 0.05;
-
-            if (path.length > 0) {
-                drone.position.set(path[0].x - 9.5, groundAlt, path[0].z - 9.5);
-            }
-
-            const timer = setInterval(() => {
-                if (phase === 'takeoff') {
-                    const target = new THREE.Vector3(drone.position.x, flightAlt, drone.position.z);
-                    drone.position.lerp(target, 0.08);
-                    if (drone.position.y > flightAlt - 0.1) phase = 'navigate';
-                }
-                else if (phase === 'navigate') {
-                    if (i >= path.length) { phase = 'land'; return; }
-                    const p = path[i];
-                    const target = new THREE.Vector3(p.x - 9.5, flightAlt, p.z - 9.5);
-                    
-                    const rayDir = new THREE.Vector3().subVectors(target, drone.position).normalize();
-                    const ray = new THREE.Raycaster(drone.position, rayDir, 0, 1.1);
-                    if (ray.intersectObjects(collidableObjects).length > 0) {
-                        phase = 'crash'; return;
-                    }
-
-                    if (drone.position.distanceTo(target) > 0.1) {
-                        const lookTarget = target.clone();
-                        lookTarget.y = drone.position.y;
-                        drone.lookAt(lookTarget);
-                        drone.position.lerp(target, 0.15);
-                    } else { i++; }
-                }
-                else if (phase === 'land') {
-                    const target = new THREE.Vector3(drone.position.x, groundAlt, drone.position.z);
-                    drone.position.lerp(target, 0.08);
-                    if (drone.position.y <= groundAlt + 0.05) clearInterval(timer);
-                }
-                else if (phase === 'crash') {
-                    flightFallVel += 0.015;
-                    drone.position.y -= flightFallVel;
-                    drone.rotation.x += 0.4;
-                    drone.rotation.z += 0.6;
-                    if (drone.position.y <= groundAlt) {
-                        drone.position.y = groundAlt;
-                        clearInterval(timer);
-                    }
-                }
-
-                if (controls) controls.target.copy(drone.position);
-                document.getElementById('tel-alt').innerText = drone.position.y.toFixed(2);
-            }, 50);
+            });
         }
 
         function updateWeather() {
-            const intensity = document.getElementById('rain-slider').value;
-            rainParticles.visible = intensity > 0;
-            document.getElementById('rain-val').innerText = intensity > 7 ? 'Extreme' : (intensity > 0 ? 'Normal' : 'None');
+            const intensity = document.getElementById('rain-slider').value; rainParticles.visible = intensity > 0;
+            document.getElementById('rain-val').innerText = intensity > 7 ? 'Storm' : (intensity > 0 ? 'Normal' : 'Low');
         }
 
+        /* ═══════════════════════════════════════════════════
+           ANIMATION LOOP
+        ═══════════════════════════════════════════════════ */
         function animate() {
-            requestAnimationFrame(animate);
-            if (controls) controls.update();
-            const pos = rainParticles.geometry.attributes.position;
-            const rain = document.getElementById('rain-slider').value;
-            for (let i = 0; i < pos.count; i++) {
-                let y = pos.getY(i); y -= (0.4 + rain * 0.1);
-                if (y < 0) y = 100;
-                pos.setY(i, y);
-            }
-            pos.needsUpdate = true;
-
-            // Realistic Drone Hover & Rotor Animation
-            const time = Date.now() * 0.002;
-            if (droneBody) {
-                droneBody.position.y = Math.sin(time) * 0.4;
-                droneBody.rotation.z = Math.sin(time * 0.5) * 0.05;
-                droneBody.rotation.x = Math.cos(time * 0.7) * 0.05;
-                droneBody.children.forEach(c => { if (c.name === "rotor") c.rotation.y += 0.6; });
+            const dt = clock.getDelta(); requestAnimationFrame(animate); if (controls) controls.update();
+            if (rainParticles.visible) {
+                const pos = rainParticles.geometry.attributes.position; const speed = (0.6 + document.getElementById('rain-slider').value * 0.1) * dt * 60;
+                for (let i = 0; i < pos.count; i++) { let y = pos.getY(i) - speed; if (y < 0) y = 100; pos.setY(i, y); }
+                pos.needsUpdate = true;
             }
 
-            // 1. Manual Keyboard Logic
-            const keys = scene.userData ? scene.userData.keys : null;
-            if (keys && drone && !isManualCrash && !isAutoPilot) {
-                const moveSpeed = 0.15, rotSpeed = 0.04;
-                const dir = new THREE.Vector3(); drone.getWorldDirection(dir);
-                if (keys.q || keys.e) drone.rotation.y += (keys.q ? 1 : -1) * rotSpeed;
-                if (keys.w || keys.s || keys.up || keys.down) {
-                    const fwd = (keys.w || keys.up) ? 1 : -1;
-                    drone.position.addScaledVector(dir, fwd * moveSpeed);
-                }
-                if (keys.a || keys.d || keys.left || keys.right) {
-                    const side = (keys.a || keys.left) ? 1 : -1;
-                    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dir).normalize();
-                    drone.position.addScaledVector(right, side * moveSpeed);
-                }
-                if (keys.shift || keys.ctrl) drone.position.y = Math.max(0.05, drone.position.y + (keys.shift ? 0.1 : -0.1));
+            if (drone && !isManualCrash) {
+                const k = scene.userData.keys; const dir = new THREE.Vector3(); drone.getWorldDirection(dir);
+                const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dir).normalize();
+                
+                let avoidanceVector = new THREE.Vector3(0,0,0);
+                const OMNI_SENSORS = [
+                    { dir: dir.clone(), force: new THREE.Vector3(0,0,-1) },
+                    { dir: dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), 0.5), force: right.clone().multiplyScalar(-1) },
+                    { dir: dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -0.5), force: right.clone() },
+                    { dir: dir.clone().applyAxisAngle(right, 0.4), force: new THREE.Vector3(0,-1,0) },
+                    { dir: dir.clone().applyAxisAngle(right, -0.4), force: new THREE.Vector3(0,1,0) }
+                ];
 
-                const ray = new THREE.Raycaster(drone.position, dir, 0, 1.1);
-                if (ray.intersectObjects(collidableObjects).length > 0) { isManualCrash = true; fallVel = 0; }
+                let proximityWarning = false;
+                OMNI_SENSORS.forEach(s => {
+                    raycaster.set(drone.position, s.dir); raycaster.far = 3.5;
+                    const hits = raycaster.intersectObjects(collidableObjects);
+                    if (hits.length > 0) {
+                        const dist = hits[0].distance; const intensity = Math.pow((3.5 - dist) / 3.5, 2);
+                        avoidanceVector.addScaledVector(s.force, intensity * 25.0 * dt);
+                        if (dist < 1.3) proximityWarning = true;
+                    }
+                });
+                document.getElementById('hud-proximity').innerText = proximityWarning ? "DANGER" : "SAFE";
+                document.getElementById('hud-proximity').style.color = proximityWarning ? "#ef4444" : "#34d399";
+
+                if (!isAutoPilot && k) {
+                    acceleration.set(0,0,0);
+                    if (k.w) acceleration.addScaledVector(dir, THRUST * dt); if (k.s) acceleration.addScaledVector(dir, -THRUST * dt);
+                    if (k.a) acceleration.addScaledVector(right, THRUST * dt); if (k.d) acceleration.addScaledVector(right, -THRUST * dt);
+                    if (k.q) drone.rotation.y += 3 * dt; if (k.e) drone.rotation.y -= 3 * dt;
+                    if (k.shift) drone.position.y += 10 * dt; if (k.ctrl) drone.position.y = Math.max(0.05, drone.position.y - 10 * dt);
+                    velocity.add(acceleration).add(avoidanceVector).multiplyScalar(DRAG); drone.position.add(velocity);
+                    const localVel = velocity.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -drone.rotation.y);
+                    targetTilt.pitch = -localVel.z * 1.8; targetTilt.roll = localVel.x * 1.8;
+                } else if (isAutoPilot && goalMarker) {
+                    const target = goalMarker.position.clone(); target.y = 2.0;
+                    if (avoidanceVector.length() > 0.1) {
+                        drone.position.addScaledVector(dir, 0.8 * dt).add(avoidanceVector); targetTilt.pitch = 0.15;
+                    } else if (drone.position.distanceTo(target) > 0.8) {
+                        const lookDir = target.clone().sub(drone.position).normalize();
+                        const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), lookDir);
+                        drone.quaternion.slerp(targetQuat, 4 * dt); drone.position.lerp(target, 1.2 * dt); targetTilt.pitch = 0.25;
+                    }
+                }
+                currentTilt.pitch = THREE.MathUtils.lerp(currentTilt.pitch, targetTilt.pitch, TILT_SPEED * dt);
+                currentTilt.roll = THREE.MathUtils.lerp(currentTilt.roll, targetTilt.roll, TILT_SPEED * dt);
+                droneBody.rotation.x = currentTilt.pitch; droneBody.rotation.z = currentTilt.roll;
+                droneBody.children.forEach(c => { if (c.name === "rotor") c.rotation.y += 40 * dt; });
             }
 
             if (isManualCrash) {
-                fallVel += 0.015; drone.position.y -= fallVel;
-                drone.rotation.x += 0.4; drone.rotation.z += 0.6;
-                if (drone.position.y <= 0.05) { drone.position.y = 0.05; }
+                fallVel += 25 * dt; drone.position.y -= fallVel * dt; droneBody.rotation.x += 15 * dt; droneBody.rotation.z += 20 * dt;
+                if (drone.position.y <= 0.05) drone.position.y = 0.05;
             }
 
-            // 2. AI Autopilot (SLAM Mapping)
-            if (isAutoPilot && drone && !isManualCrash && goalMarker) {
-                const target = goalMarker.position.clone(); target.y = 2.0;
-                const dir = new THREE.Vector3(); drone.getWorldDirection(dir);
-                const ray = new THREE.Raycaster(drone.position, dir, 0, 3.0);
-                if (Math.random() < 0.2) {
-                    const slam = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshBasicMaterial({color: 0xa855f7}));
-                    slam.position.copy(drone.position).addScaledVector(dir, 1.5 + Math.random()*2);
-                    scene.add(slam); slamPoints.push(slam);
-                    if (slamPoints.length > 50) scene.remove(slamPoints.shift());
-                }
-                const hits = ray.intersectObjects(collidableObjects);
-                if (hits.length > 0 && hits[0].distance < 1.5) {
-                    drone.rotation.y += 0.05; drone.position.addScaledVector(dir, -0.02);
-                } else {
-                    const look = target.clone(); look.y = drone.position.y; drone.lookAt(look);
-                    if (drone.position.distanceTo(target) > 0.5) drone.position.lerp(target, 0.02);
-                }
-            }
+            document.getElementById('tel-alt').innerText = drone.position.y.toFixed(2);
+            document.getElementById('tel-vx').innerText = (velocity.x * 100).toFixed(2);
+            document.getElementById('tel-vy').innerText = (velocity.z * 100).toFixed(2);
 
-            // Render Pipeline (Main + PiP)
             renderer.setScissorTest(true);
-
-            // 1. Main Viewport
             renderer.setViewport(0, 0, container.clientWidth, container.clientHeight);
             renderer.setScissor(0, 0, container.clientWidth, container.clientHeight);
             renderer.render(scene, camera);
-
-            // 2. FPV Picture-in-Picture (Bottom Right)
-            const pipW = 320, pipH = 200, padding = 20;
-            renderer.setViewport(container.clientWidth - pipW - padding, padding, pipW, pipH);
-            renderer.setScissor(container.clientWidth - pipW - padding, padding, pipW, pipH);
-            // Clear depth so PiP renders on top of the main scene perfectly
-            renderer.clearDepth();
-            renderer.render(scene, fpvCamera);
-
+            renderer.setViewport(container.clientWidth - 340, 20, 320, 200);
+            renderer.setScissor(container.clientWidth - 340, 20, 320, 200);
+            renderer.clearDepth(); renderer.render(scene, fpvCamera);
             renderer.setScissorTest(false);
         }
 
+        // Boot
         init3D();
     </script>
 </body>
-
 </html>

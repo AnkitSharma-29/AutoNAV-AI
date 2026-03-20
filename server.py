@@ -4,6 +4,8 @@ import os
 
 # Serve static files from the current directory
 app = Flask(__name__, static_url_path='/static', static_folder='.')
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
 
 # Directory where the plots are saved
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
