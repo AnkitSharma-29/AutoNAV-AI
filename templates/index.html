@@ -259,8 +259,14 @@
         let startMarker, goalMarker, autoObstacles = [], manualObstacles = [];
         const collidableObjects = []; 
         let slamPoints = []; 
+        let missionPath = [];
+        let missionPathIndex = 0;
+        let pathGroup = null;
+        let pathDots = [];
         let isManualCrash = false, isAutoPilot = false, fallVel = 0;
         let placementMode = 'explore';
+        let stuckTimer = 0;
+        let isReplanning = false;
         
         let clock = new THREE.Clock();
         let velocity = new THREE.Vector3(0,0,0);
@@ -418,7 +424,12 @@
                 rotor.position.set(p[0]*0.9, 0.25, p[1]*0.9); rotor.name = "rotor"; droneBody.add(rotor);
                 const glow = new THREE.PointLight(p[0]>0?0x3b82f6:0xef4444, 1, 3); glow.position.set(p[0]*1.2, 0, p[1]*1.2); droneBody.add(glow);
             });
-            fpvCamera.position.set(0, 0, -0.6); fpvCamera.lookAt(0, 0, -10); droneBody.add(fpvCamera);
+            // Fix FPV Camera: Drone flies towards +Z, so camera must point to +Z
+            // Positioned slightly up and forward on the drone body
+            fpvCamera.position.set(0, 0.2, 0.6); 
+            fpvCamera.lookAt(0, 0, 10); 
+            droneBody.add(fpvCamera);
+            
             drone.add(droneBody); drone.scale.set(0.15, 0.15, 0.15); drone.position.set(0, 0.05, 0); scene.add(drone);
         }
 
@@ -538,8 +549,8 @@
                 startMarker.position.set(gx, 0, gz);
                 scene.add(startMarker);
                 
-                // Move drone to start
-                drone.position.set(gx, 1.0, gz);
+                // Move drone to start (exactly on ground)
+                drone.position.set(gx, 0.05, gz);
                 velocity.set(0,0,0);
                 
                 status.innerText = `✅ START placed at Grid(${backendX}, ${backendZ})`;
@@ -604,6 +615,10 @@
             
             slamPoints.forEach(p => scene.remove(p)); 
             slamPoints = [];
+
+            if (pathGroup) scene.remove(pathGroup);
+            missionPath = [];
+            pathDots = [];
             
             isManualCrash = isAutoPilot = false; 
             velocity.set(0,0,0);
@@ -611,6 +626,69 @@
             
             document.getElementById('astar-status').innerText = '🗑️ Cleared all markers. Ready.';
             setMode('explore');
+        }
+
+        function drawPath(pathData) {
+            if (pathGroup) scene.remove(pathGroup);
+            pathGroup = new THREE.Group();
+            pathDots = [];
+            missionPath = [];
+            missionPathIndex = 0;
+            
+            pathData.forEach((p, idx) => {
+                // glowing dots indicating AI topological mapping
+                const dot = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.12, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.9 })
+                );
+                dot.position.set(p.x - 9.5, 0.6, p.z - 9.5); // Float slightly above ground
+                dot.userData = { offset: idx * 0.3 };
+                pathGroup.add(dot);
+                
+                pathDots.push({ mesh: dot, visited: false });
+                missionPath.push(new THREE.Vector3(p.x - 9.5, 3.5, p.z - 9.5));
+            });
+            scene.add(pathGroup);
+        }
+
+        function replanPath() {
+            if (isReplanning) return;
+            isReplanning = true;
+            document.getElementById('astar-status').innerText = '🔄 BRAIN REPLANNING...';
+            document.getElementById('astar-status').style.color = "#f59e0b";
+            
+            // Map drone's actual world coordinates to the backend A* (0-19) grid
+            const currentGridX = Math.max(0, Math.min(19, Math.round(drone.position.x + 9.5)));
+            const currentGridZ = Math.max(0, Math.min(19, Math.round(drone.position.z + 9.5)));
+            
+            let params = `?density=${document.getElementById('astar-den').value/100}`;
+            params += `&start=${currentGridX},${currentGridZ}`;
+            if (goalMarker) params += `&goal=${Math.floor(goalMarker.position.x+10)},${Math.floor(goalMarker.position.z+10)}`;
+            const obsStr = manualObstacles.map(o => `${o.x},${o.z}`).join(';');
+            if (obsStr) params += `&manual_obs=${obsStr}`;
+
+            fetch(`/run/astar${params}`).then(res => res.json()).then(data => {
+                if (!data.success) { 
+                    document.getElementById('astar-status').innerText = '⚠️ REPLAN FAILED'; 
+                    isReplanning = false;
+                    return; 
+                }
+                fetch(`/static/astar_data.json?` + Date.now()).then(res => res.json()).then(sim => {
+                    const path = sim.path || sim; 
+                    if (path.length === 0) {
+                        document.getElementById('astar-status').innerText = '⛔ NO PATH AVAILABLE';
+                        document.getElementById('astar-status').style.color = "#ef4444";
+                        isReplanning = false;
+                        return;
+                    }
+                    drawPath(path);
+                    document.getElementById('astar-status').innerText = '✅ NEW PATH FOUND';
+                    document.getElementById('astar-status').style.color = "#34d399";
+                    
+                    stuckTimer = 0; // Reset blockage timer
+                    isReplanning = false;
+                });
+            }).catch(() => { isReplanning = false; });
         }
 
         function toggleAuto() {
@@ -633,6 +711,9 @@
                 if (!data.success) { status.innerText = 'Error!'; return; }
                 fetch(`/static/${type}_data.json?` + Date.now()).then(res => res.json()).then(sim => {
                     const path = sim.path || sim; if (path.length === 0) return status.innerText = 'Blocked!';
+                    
+                    if (type === 'astar') drawPath(path);
+
                     if (document.getElementById('auto-obs-toggle').checked && sim.obstacles) {
                         autoObstacles.forEach(o => scene.remove(o)); autoObstacles = [];
                         sim.obstacles.forEach(o => {
@@ -662,51 +743,191 @@
                 pos.needsUpdate = true;
             }
 
+            // Pulse autonomous wave dots
+            if (pathGroup) {
+                const t = clock.getElapsedTime() * 4;
+                pathDots.forEach(d => {
+                    if (!d.visited) {
+                        const s = 1.0 + Math.sin(t - d.mesh.userData.offset) * 0.6;
+                        d.mesh.scale.set(s, s, s);
+                    }
+                });
+            }
+
             if (drone && !isManualCrash) {
                 const k = scene.userData.keys; const dir = new THREE.Vector3(); drone.getWorldDirection(dir);
                 const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dir).normalize();
+                const up = new THREE.Vector3(0,1,0);
                 
                 let avoidanceVector = new THREE.Vector3(0,0,0);
+                
+                // Enhanced 3D Omni-Sensors for strict obstacle clearance
                 const OMNI_SENSORS = [
-                    { dir: dir.clone(), force: new THREE.Vector3(0,0,-1) },
-                    { dir: dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), 0.5), force: right.clone().multiplyScalar(-1) },
-                    { dir: dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -0.5), force: right.clone() },
-                    { dir: dir.clone().applyAxisAngle(right, 0.4), force: new THREE.Vector3(0,-1,0) },
-                    { dir: dir.clone().applyAxisAngle(right, -0.4), force: new THREE.Vector3(0,1,0) }
+                    { dir: dir.clone(), force: dir.clone().multiplyScalar(-1.5) }, // Forward
+                    { dir: dir.clone().applyAxisAngle(up, 0.3), force: right.clone().multiplyScalar(-1) },
+                    { dir: dir.clone().applyAxisAngle(up, -0.3), force: right.clone() },
+                    { dir: dir.clone().applyAxisAngle(up, 0.6), force: right.clone().multiplyScalar(-1) },
+                    { dir: dir.clone().applyAxisAngle(up, -0.6), force: right.clone() },
+                    { dir: dir.clone().applyAxisAngle(right, 0.4), force: up.clone().multiplyScalar(1.5) },
+                    { dir: dir.clone().applyAxisAngle(right, -0.4), force: up.clone().multiplyScalar(-1.5) },
+                    { dir: right.clone(), force: right.clone().multiplyScalar(-1) },
+                    { dir: right.clone().multiplyScalar(-1), force: right.clone() }
                 ];
 
                 let proximityWarning = false;
                 OMNI_SENSORS.forEach(s => {
-                    raycaster.set(drone.position, s.dir); raycaster.far = 3.5;
+                    raycaster.set(drone.position, s.dir); 
+                    raycaster.far = 4.0; // Increased sensor range to keep drone far from obstacles
                     const hits = raycaster.intersectObjects(collidableObjects);
                     if (hits.length > 0) {
-                        const dist = hits[0].distance; const intensity = Math.pow((3.5 - dist) / 3.5, 2);
-                        avoidanceVector.addScaledVector(s.force, intensity * 25.0 * dt);
-                        if (dist < 1.3) proximityWarning = true;
+                        const dist = hits[0].distance; 
+                        // Massive repulsion force if too close (exponential) to prevent squeezing
+                        const intensity = Math.pow((4.0 - dist) / 4.0, 3) * 80.0;
+                        avoidanceVector.addScaledVector(s.force, intensity * dt);
+                        if (dist < 1.5) proximityWarning = true; // Stricter proximity warning
                     }
                 });
-                document.getElementById('hud-proximity').innerText = proximityWarning ? "DANGER" : "SAFE";
-                document.getElementById('hud-proximity').style.color = proximityWarning ? "#ef4444" : "#34d399";
 
-                if (!isAutoPilot && k) {
-                    acceleration.set(0,0,0);
-                    if (k.w) acceleration.addScaledVector(dir, THRUST * dt); if (k.s) acceleration.addScaledVector(dir, -THRUST * dt);
-                    if (k.a) acceleration.addScaledVector(right, THRUST * dt); if (k.d) acceleration.addScaledVector(right, -THRUST * dt);
-                    if (k.q) drone.rotation.y += 3 * dt; if (k.e) drone.rotation.y -= 3 * dt;
-                    if (k.shift) drone.position.y += 10 * dt; if (k.ctrl) drone.position.y = Math.max(0.05, drone.position.y - 10 * dt);
-                    velocity.add(acceleration).add(avoidanceVector).multiplyScalar(DRAG); drone.position.add(velocity);
-                    const localVel = velocity.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -drone.rotation.y);
-                    targetTilt.pitch = -localVel.z * 1.8; targetTilt.roll = localVel.x * 1.8;
-                } else if (isAutoPilot && goalMarker) {
-                    const target = goalMarker.position.clone(); target.y = 2.0;
-                    if (avoidanceVector.length() > 0.1) {
-                        drone.position.addScaledVector(dir, 0.8 * dt).add(avoidanceVector); targetTilt.pitch = 0.15;
-                    } else if (drone.position.distanceTo(target) > 0.8) {
-                        const lookDir = target.clone().sub(drone.position).normalize();
-                        const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), lookDir);
-                        drone.quaternion.slerp(targetQuat, 4 * dt); drone.position.lerp(target, 1.2 * dt); targetTilt.pitch = 0.25;
+                // HARD COLLISION DETECTION
+                let isCrashed = false;
+                const droneBox = new THREE.Box3().setFromObject(drone);
+                droneBox.expandByScalar(-0.1); // Slight tolerance
+                for (let i = 0; i < collidableObjects.length; i++) {
+                    const obsBox = new THREE.Box3().setFromObject(collidableObjects[i]);
+                    if (droneBox.intersectsBox(obsBox)) {
+                        isCrashed = true;
+                        break;
                     }
                 }
+
+                if (isCrashed) {
+                    // Absolute Physics Stop
+                    velocity.x = 0; velocity.z = 0;
+                    avoidanceVector.copy(dir.clone().multiplyScalar(-50.0 * dt)); // Fierce bounce back
+                    document.getElementById('hud-proximity').innerText = "COLLISION!";
+                    document.getElementById('hud-proximity').style.color = "#ef4444";
+                } else {
+                    document.getElementById('hud-proximity').innerText = proximityWarning ? "AVOIDING" : "SAFE";
+                    document.getElementById('hud-proximity').style.color = proximityWarning ? "#f59e0b" : "#34d399";
+                }
+
+                acceleration.set(0,0,0);
+                
+                // Gravity
+                const GRAVITY = -9.81 * 2.0; // Scaled for simulation feel
+                acceleration.y += GRAVITY * dt;
+
+                if (!isAutoPilot && k) {
+                    // Manual Control Physics
+                    let hoverThrust = 9.81 * 2.0; // Counteract gravity for hover
+                    if (k.shift) hoverThrust += 15.0; // Climb
+                    if (k.ctrl) hoverThrust -= 10.0; // Descend
+                    
+                    acceleration.y += hoverThrust * dt;
+
+                    if (k.w) acceleration.addScaledVector(dir, THRUST * 0.5 * dt); 
+                    if (k.s) acceleration.addScaledVector(dir, -THRUST * 0.5 * dt);
+                    if (k.a) acceleration.addScaledVector(right, THRUST * 0.5 * dt); 
+                    if (k.d) acceleration.addScaledVector(right, -THRUST * 0.5 * dt);
+                    if (k.q) drone.rotation.y += 3 * dt; 
+                    if (k.e) drone.rotation.y -= 3 * dt;
+                } else if (isAutoPilot && goalMarker) {
+                    // Autonomous Navigation Physics (Algorithm Guided)
+                    let target = goalMarker.position.clone(); 
+                    const desiredAltitude = 3.5; // Safety cruise altitude
+                    
+                    // Consume waypoint path logic
+                    if (missionPath && missionPathIndex < missionPath.length) {
+                        target = missionPath[missionPathIndex].clone();
+                        // Turn off the glowing dot as the drone passes over it
+                        if (drone.position.distanceTo(new THREE.Vector3(target.x, drone.position.y, target.z)) < 1.5) {
+                            if (pathDots[missionPathIndex]) {
+                                pathDots[missionPathIndex].visited = true;
+                                pathDots[missionPathIndex].mesh.visible = false;
+                            }
+                            missionPathIndex++;
+                        }
+                    }
+                    
+                    if (drone.position.y < desiredAltitude - 0.5 && drone.position.distanceTo(new THREE.Vector3(target.x, drone.position.y, target.z)) > 1.5) {
+                        // TAKEOFF PHASE: Ascend vertically to safety altitude first smoothly
+                        acceleration.y += (9.81 * 2.0 + 8.0) * dt; 
+                        targetTilt.pitch = 0; targetTilt.roll = 0;
+                        // Brake horizontal velocity during takeoff
+                        velocity.x *= 0.90; velocity.z *= 0.90;
+                    } else {
+                        // CRUISE PHASE: Move towards target while maintaining altitude dynamically
+                        const altError = desiredAltitude - drone.position.y;
+                        acceleration.y += (9.81 * 2.0 + altError * 5.0) * dt; // Smooth Altitude PID
+
+                        const distToTarget = drone.position.distanceTo(new THREE.Vector3(target.x, drone.position.y, target.z));
+                        if (distToTarget > 1.0) {
+                            const lookDir = new THREE.Vector3(target.x, drone.position.y, target.z).sub(drone.position).normalize();
+                            
+                            // Rotate towards target (yaw)
+                            const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), lookDir);
+                            drone.quaternion.slerp(targetQuat, 3 * dt); 
+                            
+                            const forwardAvoidance = avoidanceVector.dot(dir); // Negative means pushing backward
+                            
+                            // Accelerate forward only if we are mostly facing the target and not blocked
+                            if (dir.dot(lookDir) > 0.6 && forwardAvoidance > -5.0 && !isCrashed && !isReplanning) {
+                                // Decelerate as we get closer (approach maneuver)
+                                const speedFactor = Math.min(distToTarget / 4.0, 1.0);
+                                // Slower thrust for easy viewing
+                                acceleration.addScaledVector(dir, THRUST * 0.15 * speedFactor * dt);
+                                targetTilt.pitch = 0.20 * speedFactor; // Less crazy tilt
+                                stuckTimer = 0; // We are moving freely
+                            } else if (forwardAvoidance <= -5.0 || isCrashed) {
+                                // Active braking when blocked
+                                velocity.x *= 0.8; velocity.z *= 0.8;
+                                targetTilt.pitch = -0.20; // Tilt backward to brake
+                                
+                                // Dynamic replanning brain 
+                                stuckTimer += dt;
+                                if (stuckTimer > 0.8 && !isReplanning) { // Thinks extremely fast (0.8s reaction)
+                                    replanPath();
+                                    stuckTimer = 0;
+                                }
+                            } else {
+                                targetTilt.pitch = 0.0;
+                                stuckTimer = 0;
+                            }
+                        } else {
+                            // Arrived at XY goal, transition to hover
+                            targetTilt.pitch = 0; targetTilt.roll = 0;
+                            velocity.x *= 0.85; velocity.z *= 0.85; // Brake predictably
+                        }
+                    }
+                } else {
+                    // Hover in place (Idle)
+                    acceleration.y += (9.81 * 2.0) * dt; 
+                    targetTilt.pitch = 0; targetTilt.roll = 0;
+                    velocity.x *= 0.95; velocity.z *= 0.95;
+                }
+
+                // Apply Physics Integration
+                velocity.add(acceleration).add(avoidanceVector.multiplyScalar(dt));
+                
+                // Air drag (friction) to prevent infinite speeding
+                velocity.multiplyScalar(0.95); 
+                
+                // Realistic slow-moving scale 
+                drone.position.add(velocity.clone().multiplyScalar(dt * 0.8)); 
+
+                // Ground Collision
+                if (drone.position.y <= 0.05) {
+                    drone.position.y = 0.05;
+                    velocity.y = 0;
+                }
+                
+                // Update Tilt Visualizer based on local velocity
+                const localVel = velocity.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -drone.rotation.y);
+                if (!isAutoPilot) {
+                    targetTilt.pitch = -localVel.z * 1.5; 
+                    targetTilt.roll = localVel.x * 1.5;
+                }
+                
                 currentTilt.pitch = THREE.MathUtils.lerp(currentTilt.pitch, targetTilt.pitch, TILT_SPEED * dt);
                 currentTilt.roll = THREE.MathUtils.lerp(currentTilt.roll, targetTilt.roll, TILT_SPEED * dt);
                 droneBody.rotation.x = currentTilt.pitch; droneBody.rotation.z = currentTilt.roll;
@@ -718,9 +939,10 @@
                 if (drone.position.y <= 0.05) drone.position.y = 0.05;
             }
 
+            // Real-world telemetry scaling 
             document.getElementById('tel-alt').innerText = drone.position.y.toFixed(2);
-            document.getElementById('tel-vx').innerText = (velocity.x * 100).toFixed(2);
-            document.getElementById('tel-vy').innerText = (velocity.z * 100).toFixed(2);
+            document.getElementById('tel-vx').innerText = (velocity.x * 1.5).toFixed(2);
+            document.getElementById('tel-vy').innerText = (velocity.z * 1.5).toFixed(2);
 
             renderer.setScissorTest(true);
             renderer.setViewport(0, 0, container.clientWidth, container.clientHeight);
