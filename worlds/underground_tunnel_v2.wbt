@@ -1,0 +1,67 @@
+#VRML_SIM R2023b utf8
+
+import_nodes [
+  "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/dji/mavic/protos/Mavic2Pro.proto"
+]
+
+WorldInfo {
+  basicTimeStep 8
+  defaultDamping Damping {
+    linear 0.5
+    angular 0.5
+  }
+}
+Viewpoint {
+  orientation -0.15 0.5 0.8 1.2
+  position 10 10 10
+}
+TexturedBackground {}
+TexturedBackgroundLight {}
+
+Floor {
+  size 50 50
+  appearance PBRAppearance {
+    baseColorMap ImageTexture {
+      url [ "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/default/worlds/textures/grid.png" ]
+    }
+  }
+}
+
+# The AI Drone
+Mavic2Pro {
+  translation 0 0 0.1
+  controller "drone_orchestrator"
+  cameraSlot [
+    Camera {
+      name "camera"
+      width 400
+      height 240
+    }
+  ]
+  extensionSlot [
+    Lidar {
+      name "lidar"
+      numberOfLayers 1
+      horizontalResolution 360
+      fieldOfView 6.28
+      maxRange 10
+    }
+  ]
+}
+
+# Obstacles (Underground Tunnel Pillars)
+Box {
+  translation 5 5 1
+  size 1 1 5
+  appearance PBRAppearance { baseColor 0.8 0.1 0.1 }
+}
+Box {
+  translation 5 -5 1
+  size 1 1 5
+  appearance PBRAppearance { baseColor 0.1 0.8 0.1 }
+}
+Box {
+  translation 10 0 1
+  size 1 5 5
+  appearance PBRAppearance { baseColor 0.1 0.1 0.8 }
+}

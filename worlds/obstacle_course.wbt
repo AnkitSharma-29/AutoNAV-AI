@@ -1,0 +1,69 @@
+#VRML_SIM R2023b utf8
+WorldInfo {
+  info [ "Hackathon Autonomous Drone Tunnel SLAM" ]
+  title "2D Obstacle A* Navigation"
+  basicTimeStep 8
+}
+Viewpoint {
+  orientation -0.5 0.8 0.3 1.5
+  position 15 15 -15
+}
+TexturedBackground {
+  texture "factory"
+}
+TexturedBackgroundLight {
+}
+Floor {
+  size 50 50
+  appearance PBRAppearance {
+    baseColor 0.2 0.3 0.2
+    roughness 0.9
+  }
+}
+Solid {
+  translation 5 1 5
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.2 0.2
+      }
+      geometry Box {
+        size 1 4 8
+      }
+    }
+  ]
+  name "wall1"
+  boundingObject Box {
+    size 1 4 8
+  }
+}
+Solid {
+  translation 10 1 8
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.2 0.2
+      }
+      geometry Box {
+        size 8 4 1
+      }
+    }
+  ]
+  name "wall2"
+  boundingObject Box {
+    size 8 4 1
+  }
+}
+Mavic2Pro {
+  translation 0 0.2 0
+  controller "astar_navigator"
+  cameraSlot [
+    Lidar {
+      name "lidar"
+      horizontalResolution 256
+      fieldOfView 6.28
+      numberOfLayers 1
+      maxRange 10
+    }
+  ]
+}

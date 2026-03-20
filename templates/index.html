@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,49 +8,201 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        :root { --primary: #3498db; --bg: #020617; --card: rgba(30, 41, 59, 0.7); --text: #f8fafc; }
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        .sidebar { width: 380px; background: var(--card); backdrop-filter: blur(12px); padding: 25px; box-shadow: 10px 0 30px rgba(0,0,0,0.5); z-index: 10; overflow-y: auto; border-right: 1px solid rgba(255,255,255,0.1); }
-        h1 { font-size: 1.4rem; color: #60a5fa; margin-bottom: 25px; letter-spacing: -0.5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
-        .card { background: rgba(51, 65, 85, 0.5); padding: 18px; border-radius: 16px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        h3 { margin-top: 0; font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
-        .controls { display: flex; flex-direction: column; gap: 10px; }
-        
-        label { font-size: 0.75rem; color: #cbd5e1; display: flex; justify-content: space-between; }
-        input[type="range"] { width: 100%; cursor: pointer; }
-        
-        .btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; text-transform: uppercase; font-size: 0.75rem; }
-        .btn:hover { filter: brightness(1.2); transform: scale(1.02); }
-        .btn-outline { background: transparent; border: 1px solid #3b82f6; color: #3b82f6; }
-        .status { font-size: 0.7rem; margin-top: 8px; color: #34d399; font-family: monospace; }
-        
-        #viewport { flex-grow: 1; position: relative; cursor: crosshair; }
-        .hud { position: absolute; padding: 15px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); font-family: 'Courier New', Courier, monospace; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); z-index: 100; }
-        .hud-left { top: 20px; left: 20px; }
-        .hud-right { top: 20px; right: 20px; text-align: right; }
-        
-        .toolbar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--card); backdrop-filter: blur(10px); padding: 10px; border-radius: 50px; display: flex; gap: 10px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 100; }
-        .tool-btn { background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 18px; border-radius: 25px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .tool-btn:hover { background: rgba(255,255,255,0.2); }
-        .tool-btn.active { background: #3b82f6; font-weight: bold; }
+        :root {
+            --primary: #3498db;
+            --bg: #020617;
+            --card: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+        }
 
-        .preset-group { display: flex; gap: 5px; margin-top: 10px; }
-        .preset-btn { flex: 1; padding: 6px; font-size: 0.65rem; background: #1e293b; border: 1px solid #334155; border-radius: 4px; color: #94a3b8; cursor: pointer; }
-        .preset-btn:hover { border-color: #3b82f6; color: white; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 380px;
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            padding: 25px;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            color: #60a5fa;
+            margin-bottom: 25px;
+            letter-spacing: -0.5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+        }
+
+        .card {
+            background: rgba(51, 65, 85, 0.5);
+            padding: 18px;
+            border-radius: 16px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        h3 {
+            margin-top: 0;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            width: 100%;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .btn:hover {
+            filter: brightness(1.2);
+            transform: scale(1.02);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .status {
+            font-size: 0.7rem;
+            margin-top: 8px;
+            color: #34d399;
+            font-family: monospace;
+        }
+
+        #viewport {
+            flex-grow: 1;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        .hud {
+            position: absolute;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            font-family: 'Courier New', Courier, monospace;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .hud-left {
+            top: 20px;
+            left: 20px;
+        }
+
+        .hud-right {
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        .toolbar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            border-radius: 50px;
+            display: flex;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        .tool-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .tool-btn:hover { background: rgba(59, 130, 246, 0.3); transform: translateY(-2px); }
+        .tool-btn.active { background: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 15px rgba(59,130,246,0.5); }
+
+        .controls-legend {
+            position: absolute; top: 100px; left: 15px; background: rgba(15, 23, 42, 0.85);
+            padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8; font-size: 0.75rem; pointer-events: none;
+            backdrop-filter: blur(5px); z-index: 1000;
+        }
+        .controls-legend b { color: #f8fafc; }
+        
+        .sim-btn {
+            background: #3b82f6; color: white; border: none; padding: 12px;
+            border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%;
+            text-transform: uppercase; font-size: 0.75rem; margin-bottom: 5px;
+        }
+        .sim-btn-ai {
+            background: #a855f7; border: 1px solid #c084fc; box-shadow: 0 0 15px rgba(168,85,247,0.3);
+        }
     </style>
 </head>
+
 <body>
     <div class="sidebar">
         <h1>JETSON AI NAV 🚁</h1>
-        
+
         <div class="card">
             <h3>Environment Overrides</h3>
             <div class="controls">
                 <label>Rain: <span id="rain-val">Low</span></label>
                 <input type="range" id="rain-slider" min="0" max="10" value="2" oninput="updateWeather()">
                 <label>Simulation Mode:</label>
-                <select id="sim-preset" style="background:#1e293b; color:white; border:none; padding:8px; border-radius:5px;">
+                <select id="sim-preset"
+                    style="background:#1e293b; color:white; border:none; padding:8px; border-radius:5px;">
                     <option value="mountains">Mountains</option>
                     <option value="city">Urban Maze</option>
                 </select>
@@ -78,8 +231,9 @@
             <div class="controls">
                 <label>Obstacle Density: <span id="astar-den-val">20%</span></label>
                 <input type="range" id="astar-den" min="5" max="45" value="20" oninput="updateVal('astar-den')">
-                <button class="btn" onclick="runSim('astar')">Compute & Navigate</button>
-                <div id="astar-status" class="status"></div>
+                <button class="sim-btn" onclick="runSim('astar')">COMPUTE & NAVIGATE</button>
+                <button class="sim-btn sim-btn-ai" onclick="toggleAuto()" id="btn-auto">🤖 LAUNCH AI AUTOPILOT</button>
+                <div id="astar-status" class="status">Ready for Takeoff</div>
             </div>
         </div>
     </div>
@@ -105,6 +259,14 @@
             <button class="tool-btn" onclick="setMode('obs')" id="btn-obs">🚧 Add Obstacle</button>
             <button class="tool-btn" onclick="clearMarkers()" style="background:rgba(239, 68, 68, 0.2)">🗑 Clear</button>
         </div>
+
+        <div class="controls-legend">
+            <b>FLIGHT CONTROLS</b><br>
+            • <b>W/S/Arrows</b>: Pitch (Fwd/Bwd)<br>
+            • <b>A/D/Arrows</b>: Roll (L/R)<br>
+            • <b>Q/E</b>: Yaw (Rotate)<br>
+            • <b>Shift/Ctrl</b>: Altitude (Up/Down)
+        </div>
     </div>
 
     <script>
@@ -112,7 +274,7 @@
             const val = document.getElementById(id).value;
             const span = document.getElementById(id + '-val');
             if (id === 'astar-den') span.innerText = val + '%';
-            else span.innerText = (id === 'pid-wind' ? (val/1).toFixed(1) : val + 'm');
+            else span.innerText = (id === 'pid-wind' ? (val / 1).toFixed(1) : val + 'm');
         }
 
         function applyWeather(mode) {
@@ -128,6 +290,11 @@
         let scene, camera, renderer, drone, droneBody, fpvCamera, rainParticles, terrain, controls;
         let startMarker, goalMarker;
         let manualObstacles = [];
+        const collidableObjects = []; // Unified tracking for HARD collisions
+        let slamPoints = []; 
+        let isManualCrash = false;
+        let isAutoPilot = false;
+        let fallVel = 0;
         let placementMode = 'explore';
         let mouse = new THREE.Vector2();
         let raycaster = new THREE.Raycaster();
@@ -163,18 +330,33 @@
             createTerrain();
             createWeather();
             createDrone();
-            
-            let pointerPos = {x:0, y:0};
-            document.addEventListener('pointerdown', (e) => {
-                if (e.target === renderer.domElement) pointerPos = {x: e.clientX, y: e.clientY};
+
+            const keys = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false, ctrl: false, up: false, down: false, left: false, right: false };
+            window.addEventListener('keydown', (e) => { 
+                const key = e.key.toLowerCase();
+                if (key === 'w' || key === 'arrowup') keys.w = keys.up = true;
+                if (key === 'a' || key === 'arrowleft') keys.a = keys.left = true;
+                if (key === 's' || key === 'arrowdown') keys.s = keys.down = true;
+                if (key === 'd' || key === 'arrowright') keys.d = keys.right = true;
+                if (key === 'q') keys.q = true;
+                if (key === 'e') keys.e = true;
+                if (key === 'shift') keys.shift = true;
+                if (key === 'control') keys.ctrl = true;
+                scene.userData.keys = keys;
             });
-            // Attach to document to bypass OrbitControls stopPropagation
-            document.addEventListener('pointerup', (e) => {
-                if (e.target !== renderer.domElement) return;
-                const dist = Math.hypot(e.clientX - pointerPos.x, e.clientY - pointerPos.y);
-                if (dist > 5) return; // Prevent raycast if the mouse was dragged
-                onMapClick(e);
+            window.addEventListener('keyup', (e) => { 
+                const key = e.key.toLowerCase();
+                if (key === 'w' || key === 'arrowup') keys.w = keys.up = false;
+                if (key === 'a' || key === 'arrowleft') keys.a = keys.left = false;
+                if (key === 's' || key === 'arrowdown') keys.s = keys.down = false;
+                if (key === 'd' || key === 'arrowright') keys.d = keys.right = false;
+                if (key === 'q') keys.q = false;
+                if (key === 'e') keys.e = false;
+                if (key === 'shift') keys.shift = false;
+                if (key === 'control') keys.ctrl = false;
+                scene.userData.keys = keys;
             });
+
             animate();
         }
 
@@ -197,8 +379,8 @@
             const pos = bgGeo.attributes.position;
             for (let i = 0; i < pos.count; i++) {
                 const x = pos.getX(i), y = pos.getY(i);
-                const dist = Math.sqrt(x*x + y*y);
-                const h = dist < 12 ? 0 : Math.sin(x/10) * Math.cos(y/10) * 3 + (dist-12)*0.3;
+                const dist = Math.sqrt(x * x + y * y);
+                const h = dist < 12 ? 0 : Math.sin(x / 10) * Math.cos(y / 10) * 3 + (dist - 12) * 0.3;
                 pos.setZ(i, h);
             }
             bgGeo.computeVertexNormals();
@@ -214,61 +396,61 @@
             const geo = new THREE.BufferGeometry();
             const count = 15000;
             const posArr = new Float32Array(count * 3);
-            for(let i=0; i<count*3; i+=3) {
-                posArr[i] = (Math.random()-0.5)*300;
-                posArr[i+1] = Math.random()*100;
-                posArr[i+2] = (Math.random()-0.5)*300;
+            for (let i = 0; i < count * 3; i += 3) {
+                posArr[i] = (Math.random() - 0.5) * 300;
+                posArr[i + 1] = Math.random() * 100;
+                posArr[i + 2] = (Math.random() - 0.5) * 300;
             }
             geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-            rainParticles = new THREE.Points(geo, new THREE.PointsMaterial({color: 0xaaaaaa, size: 0.1}));
+            rainParticles = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1 }));
             scene.add(rainParticles);
         }
 
         function createDrone() {
             drone = new THREE.Group();
             droneBody = new THREE.Group();
-            
+
             // Central Hub
-            const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16), new THREE.MeshStandardMaterial({color: 0x1e293b, metalness: 0.8}));
+            const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 }));
             droneBody.add(hub);
-            
+
             // X-Arms
-            const armMat = new THREE.MeshStandardMaterial({color: 0x0f172a, roughness: 0.9});
-            const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 2.5), armMat); arm1.rotation.y = Math.PI/4; droneBody.add(arm1);
-            const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 2.5), armMat); arm2.rotation.y = -Math.PI/4; droneBody.add(arm2);
-            
+            const armMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+            const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 2.5), armMat); arm1.rotation.y = Math.PI / 4; droneBody.add(arm1);
+            const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 2.5), armMat); arm2.rotation.y = -Math.PI / 4; droneBody.add(arm2);
+
             // Rotors and LEDs
-            const rotorMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.2});
-            const positions = [[1,1,0xff0000], [1,-1,0xff0000], [-1,1,0x00ff00], [-1,-1,0x00ff00]];
+            const rotorMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
+            const positions = [[1, 1, 0xff0000], [1, -1, 0xff0000], [-1, 1, 0x00ff00], [-1, -1, 0x00ff00]];
             positions.forEach(p => {
                 const dist = 0.85;
                 const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.2), armMat);
-                motor.position.set(p[0]*dist, 0.1, p[1]*dist);
+                motor.position.set(p[0] * dist, 0.1, p[1] * dist);
                 droneBody.add(motor);
-                
+
                 const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.02), rotorMat);
-                rotor.position.set(p[0]*dist, 0.2, p[1]*dist);
+                rotor.position.set(p[0] * dist, 0.2, p[1] * dist);
                 rotor.name = "rotor";
                 droneBody.add(rotor);
-                
+
                 const led = new THREE.PointLight(p[2], 1, 3);
-                led.position.set(p[0]*dist, -0.1, p[1]*dist);
+                led.position.set(p[0] * dist, -0.1, p[1] * dist);
                 droneBody.add(led);
-                
-                const ledMesh = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshBasicMaterial({color: p[2]}));
+
+                const ledMesh = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshBasicMaterial({ color: p[2] }));
                 ledMesh.position.copy(led.position);
                 droneBody.add(ledMesh);
             });
-            
+
             // Landing Gear
-            const skidMat = new THREE.MeshStandardMaterial({color: 0xffffff});
-            const skid1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), skidMat); skid1.position.set(0.4, -0.3, 0); skid1.rotation.x = Math.PI/2; droneBody.add(skid1);
-            const skid2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), skidMat); skid2.position.set(-0.4, -0.3, 0); skid2.rotation.x = Math.PI/2; droneBody.add(skid2);
+            const skidMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const skid1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), skidMat); skid1.position.set(0.4, -0.3, 0); skid1.rotation.x = Math.PI / 2; droneBody.add(skid1);
+            const skid2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), skidMat); skid2.position.set(-0.4, -0.3, 0); skid2.rotation.x = Math.PI / 2; droneBody.add(skid2);
             const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.4), skidMat); leg1.position.set(0.4, -0.15, 0); droneBody.add(leg1);
             const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.4), skidMat); leg2.position.set(-0.4, -0.15, 0); droneBody.add(leg2);
 
             // FPV Camera Gimbal (Front Facing -Z)
-            const gimbal = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshStandardMaterial({color: 0x111111}));
+            const gimbal = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshStandardMaterial({ color: 0x111111 }));
             gimbal.position.set(0, -0.15, -0.4);
             droneBody.add(gimbal);
             fpvCamera.position.set(0, -0.15, -0.5);
@@ -290,21 +472,21 @@
 
         function onMapClick(event) {
             if (placementMode === 'explore') return;
-            
+
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            
+
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(scene.children, true);
             const hit = intersects.find(i => i.object.name === "arena" || i.object.name === "terrain");
-            
+
             if (hit) {
                 const pt = hit.point;
                 // Precision Snapping to 1x1 grid (-10 to 10)
                 const gx = Math.floor(pt.x) + 0.5;
                 const gz = Math.floor(pt.z) + 0.5;
-                
+
                 if (gx < -9.5 || gx > 9.5 || gz < -9.5 || gz > 9.5) return;
 
                 // Backend grid indices (0-19)
@@ -313,24 +495,25 @@
 
                 if (placementMode === 'start') {
                     if (startMarker) scene.remove(startMarker);
-                    startMarker = new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshStandardMaterial({color: 0x22c55e}));
+                    startMarker = new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshStandardMaterial({ color: 0x22c55e }));
                     startMarker.position.set(gx, 0.4, gz);
                     startMarker.castShadow = true;
                     scene.add(startMarker);
                     drone.position.set(gx, 5, gz);
                 } else if (placementMode === 'goal') {
                     if (goalMarker) scene.remove(goalMarker);
-                    goalMarker = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.8), new THREE.MeshStandardMaterial({color: 0x3b82f6}));
+                    goalMarker = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.8), new THREE.MeshStandardMaterial({ color: 0x3b82f6 }));
                     goalMarker.position.set(gx, 0.75, gz);
                     goalMarker.castShadow = true;
                     scene.add(goalMarker);
                 } else if (placementMode === 'obs') {
-                    const obsH = 2 + Math.random()*2;
-                    const obs = new THREE.Mesh(new THREE.BoxGeometry(0.95, obsH, 0.95), new THREE.MeshStandardMaterial({color: 0xef4444}));
-                    obs.position.set(gx, obsH/2, gz);
+                    const obsH = 2 + Math.random() * 2;
+                    const obs = new THREE.Mesh(new THREE.BoxGeometry(0.95, obsH, 0.95), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
+                    obs.position.set(gx, obsH / 2, gz);
                     obs.castShadow = true;
                     scene.add(obs);
-                    manualObstacles.push({x: backendX, z: backendZ, mesh: obs});
+                    manualObstacles.push({ x: backendX, z: backendZ, mesh: obs });
+                    collidableObjects.push(obs); // Track for collisions
                 }
             }
         }
@@ -340,6 +523,19 @@
             if (goalMarker) { scene.remove(goalMarker); goalMarker = null; }
             manualObstacles.forEach(o => scene.remove(o.mesh));
             manualObstacles = [];
+            collidableObjects.length = 0;
+            slamPoints.forEach(p => scene.remove(p));
+            slamPoints = [];
+            isManualCrash = false;
+            isAutoPilot = false;
+        }
+
+        function toggleAuto() {
+            isAutoPilot = !isAutoPilot;
+            const btn = document.getElementById('btn-auto');
+            btn.style.background = isAutoPilot ? '#ef4444' : '#a855f7';
+            btn.innerText = isAutoPilot ? '🛑 STOP AUTOPILOT' : '🤖 LAUNCH AI AUTOPILOT';
+            document.getElementById('astar-status').innerText = isAutoPilot ? 'AI ORCHESTRATOR ENGAGED' : 'Ready';
         }
 
         function runSim(type) {
@@ -348,7 +544,7 @@
             const oldText = btn.innerText;
             btn.innerText = "⏳ LOADING...";
             status.innerText = 'Calculating Optimal Trajectory...';
-            
+
             let params = `?density=${document.getElementById('astar-den').value / 100}`;
             if (type === 'pid') {
                 params = `?altitude=${document.getElementById('pid-alt').value}&wind=${document.getElementById('pid-wind').value}`;
@@ -374,6 +570,16 @@
                                     status.innerText = 'FAILED: Path blocked by obstacles!';
                                     status.style.color = '#ef4444'; // Red
                                 } else {
+                                    if (sim.obstacles) {
+                                        sim.obstacles.forEach(o => {
+                                            const obsH = 2 + Math.random()*2;
+                                            const obs = new THREE.Mesh(new THREE.BoxGeometry(0.95, obsH, 0.95), new THREE.MeshStandardMaterial({color: 0x64748b}));
+                                            obs.position.set(o.x - 9.5, obsH/2, o.z - 9.5);
+                                            obs.castShadow = true;
+                                            scene.add(obs);
+                                            collidableObjects.push(obs); 
+                                        });
+                                    }
                                     status.innerText = 'Ready! Flying...';
                                     status.style.color = '#34d399'; // Green
                                     animateFlight(path, type);
@@ -389,9 +595,10 @@
         function animateFlight(path, type) {
             let phase = 'takeoff';
             let i = 0;
+            let flightFallVel = 0;
             const flightAlt = 2.0; // Relative to the massive chessboard scale
             const groundAlt = 0.05;
-            
+
             if (path.length > 0) {
                 drone.position.set(path[0].x - 9.5, groundAlt, path[0].z - 9.5);
             }
@@ -401,33 +608,42 @@
                     const target = new THREE.Vector3(drone.position.x, flightAlt, drone.position.z);
                     drone.position.lerp(target, 0.08);
                     if (drone.position.y > flightAlt - 0.1) phase = 'navigate';
-                } 
+                }
                 else if (phase === 'navigate') {
-                    if (i >= path.length) { 
-                        phase = 'land'; 
-                        return; 
-                    }
+                    if (i >= path.length) { phase = 'land'; return; }
                     const p = path[i];
                     const target = new THREE.Vector3(p.x - 9.5, flightAlt, p.z - 9.5);
                     
+                    const rayDir = new THREE.Vector3().subVectors(target, drone.position).normalize();
+                    const ray = new THREE.Raycaster(drone.position, rayDir, 0, 1.1);
+                    if (ray.intersectObjects(collidableObjects).length > 0) {
+                        phase = 'crash'; return;
+                    }
+
                     if (drone.position.distanceTo(target) > 0.1) {
                         const lookTarget = target.clone();
                         lookTarget.y = drone.position.y;
                         drone.lookAt(lookTarget);
                         drone.position.lerp(target, 0.15);
-                    } else {
-                        i++; // Reached waypoint
-                    }
+                    } else { i++; }
                 }
                 else if (phase === 'land') {
                     const target = new THREE.Vector3(drone.position.x, groundAlt, drone.position.z);
                     drone.position.lerp(target, 0.08);
-                    if (drone.position.y <= groundAlt + 0.05) {
+                    if (drone.position.y <= groundAlt + 0.05) clearInterval(timer);
+                }
+                else if (phase === 'crash') {
+                    flightFallVel += 0.015;
+                    drone.position.y -= flightFallVel;
+                    drone.rotation.x += 0.4;
+                    drone.rotation.z += 0.6;
+                    if (drone.position.y <= groundAlt) {
+                        drone.position.y = groundAlt;
                         clearInterval(timer);
                     }
                 }
-                
-                if(controls) controls.target.copy(drone.position);
+
+                if (controls) controls.target.copy(drone.position);
                 document.getElementById('tel-alt').innerText = drone.position.y.toFixed(2);
             }, 50);
         }
@@ -440,33 +656,80 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            if(controls) controls.update();
+            if (controls) controls.update();
             const pos = rainParticles.geometry.attributes.position;
             const rain = document.getElementById('rain-slider').value;
-            for(let i=0; i<pos.count; i++) {
-                let y = pos.getY(i); y -= (0.4 + rain*0.1);
+            for (let i = 0; i < pos.count; i++) {
+                let y = pos.getY(i); y -= (0.4 + rain * 0.1);
                 if (y < 0) y = 100;
                 pos.setY(i, y);
             }
             pos.needsUpdate = true;
-            
+
             // Realistic Drone Hover & Rotor Animation
             const time = Date.now() * 0.002;
-            if(droneBody) {
+            if (droneBody) {
                 droneBody.position.y = Math.sin(time) * 0.4;
                 droneBody.rotation.z = Math.sin(time * 0.5) * 0.05;
                 droneBody.rotation.x = Math.cos(time * 0.7) * 0.05;
-                droneBody.children.forEach(c => { if(c.name === "rotor") c.rotation.y += 0.6; });
+                droneBody.children.forEach(c => { if (c.name === "rotor") c.rotation.y += 0.6; });
             }
-            
+
+            // 1. Manual Keyboard Logic
+            const keys = scene.userData ? scene.userData.keys : null;
+            if (keys && drone && !isManualCrash && !isAutoPilot) {
+                const moveSpeed = 0.15, rotSpeed = 0.04;
+                const dir = new THREE.Vector3(); drone.getWorldDirection(dir);
+                if (keys.q || keys.e) drone.rotation.y += (keys.q ? 1 : -1) * rotSpeed;
+                if (keys.w || keys.s || keys.up || keys.down) {
+                    const fwd = (keys.w || keys.up) ? 1 : -1;
+                    drone.position.addScaledVector(dir, fwd * moveSpeed);
+                }
+                if (keys.a || keys.d || keys.left || keys.right) {
+                    const side = (keys.a || keys.left) ? 1 : -1;
+                    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dir).normalize();
+                    drone.position.addScaledVector(right, side * moveSpeed);
+                }
+                if (keys.shift || keys.ctrl) drone.position.y = Math.max(0.05, drone.position.y + (keys.shift ? 0.1 : -0.1));
+
+                const ray = new THREE.Raycaster(drone.position, dir, 0, 1.1);
+                if (ray.intersectObjects(collidableObjects).length > 0) { isManualCrash = true; fallVel = 0; }
+            }
+
+            if (isManualCrash) {
+                fallVel += 0.015; drone.position.y -= fallVel;
+                drone.rotation.x += 0.4; drone.rotation.z += 0.6;
+                if (drone.position.y <= 0.05) { drone.position.y = 0.05; }
+            }
+
+            // 2. AI Autopilot (SLAM Mapping)
+            if (isAutoPilot && drone && !isManualCrash && goalMarker) {
+                const target = goalMarker.position.clone(); target.y = 2.0;
+                const dir = new THREE.Vector3(); drone.getWorldDirection(dir);
+                const ray = new THREE.Raycaster(drone.position, dir, 0, 3.0);
+                if (Math.random() < 0.2) {
+                    const slam = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshBasicMaterial({color: 0xa855f7}));
+                    slam.position.copy(drone.position).addScaledVector(dir, 1.5 + Math.random()*2);
+                    scene.add(slam); slamPoints.push(slam);
+                    if (slamPoints.length > 50) scene.remove(slamPoints.shift());
+                }
+                const hits = ray.intersectObjects(collidableObjects);
+                if (hits.length > 0 && hits[0].distance < 1.5) {
+                    drone.rotation.y += 0.05; drone.position.addScaledVector(dir, -0.02);
+                } else {
+                    const look = target.clone(); look.y = drone.position.y; drone.lookAt(look);
+                    if (drone.position.distanceTo(target) > 0.5) drone.position.lerp(target, 0.02);
+                }
+            }
+
             // Render Pipeline (Main + PiP)
             renderer.setScissorTest(true);
-            
+
             // 1. Main Viewport
             renderer.setViewport(0, 0, container.clientWidth, container.clientHeight);
             renderer.setScissor(0, 0, container.clientWidth, container.clientHeight);
             renderer.render(scene, camera);
-            
+
             // 2. FPV Picture-in-Picture (Bottom Right)
             const pipW = 320, pipH = 200, padding = 20;
             renderer.setViewport(container.clientWidth - pipW - padding, padding, pipW, pipH);
@@ -474,11 +737,12 @@
             // Clear depth so PiP renders on top of the main scene perfectly
             renderer.clearDepth();
             renderer.render(scene, fpvCamera);
-            
+
             renderer.setScissorTest(false);
         }
 
         init3D();
     </script>
 </body>
+
 </html>

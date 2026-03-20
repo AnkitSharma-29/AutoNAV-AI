@@ -1,0 +1,74 @@
+#VRML_SIM R2023b utf8
+WorldInfo {
+  info [ "Hackathon Autonomous Drone Tunnel SLAM" ]
+  title "GPS Denied Drone Underground Navigation"
+  basicTimeStep 8
+}
+Viewpoint {
+  orientation -0.117 -0.96 0.25 1.5
+  position 8.5 4.5 -12
+}
+TexturedBackground {
+  texture "factory"
+}
+TexturedBackgroundLight {
+}
+Floor {
+  size 50 50
+  appearance PBRAppearance {
+    baseColor 0.2 0.2 0.2
+    roughness 0.9
+  }
+}
+Solid {
+  translation 5 1 2
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.2 0.2
+      }
+      geometry Box {
+        size 1 4 8
+      }
+    }
+  ]
+  name "obstacle1"
+  boundingObject Box {
+    size 1 4 8
+  }
+}
+Solid {
+  translation 0 1 8
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.2 0.2
+      }
+      geometry Box {
+        size 8 4 1
+      }
+    }
+  ]
+  name "obstacle2"
+  boundingObject Box {
+    size 8 4 1
+  }
+}
+Mavic2Pro {
+  translation 0 0.2 0
+  controller "pid_altitude_controller"
+  cameraSlot [
+    Camera {
+      name "camera"
+      width 640
+      height 480
+    }
+    Lidar {
+      name "lidar"
+      horizontalResolution 512
+      fieldOfView 6.28
+      numberOfLayers 1
+      maxRange 10
+    }
+  ]
+}

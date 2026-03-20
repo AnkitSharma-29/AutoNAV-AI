@@ -1,68 +1,59 @@
-# 🚁 Autonomous GPS-Denied Drone Navigation & SLAM
+# 🚁 Autonomous GPS-Denied Drone Navigation & SLAM (Webots + ROS2)
 
-### *Bridging the gap between laboratory research and real-world deployment.*
+### *Real-World Ready Autonomy for the NVIDIA Jetson Platform*
 
 ---
 
 ## 📄 Project Overview
 This project proposes a **low-cost, autonomous drone** integrating **RGB-D vision**, **2D LIDAR**, and **onboard computation (NVIDIA Jetson)** to perform real-time **SLAM**, **obstacle avoidance**, and **path planning** without GPS. 
 
-It offers an open, reproducible platform validated through high-fidelity simulation and field testing. This strengthens strategic capabilities in autonomous navigation for critical, GPS-denied environments like underground tunnels, dense forests, and indoor warehouses.
+It tackles strict hackathon problem statements by utilizing the industry-standard **Webots Robotics Simulator** and **ROS2 (Robot Operating System)**.
 
 ---
 
-## 🚀 Key Features
+## 🎯 Solved Hackathon Problem Statements
 
-### 1. **Interactive 3D Simulation Dashboard**
-A premium web-based visualization tool (built with **Three.js** and **Flask**) that allows real-time monitoring and stress-testing of drone algorithms.
-- **Real-Time Robustness Testing:** Sliders to adjust wind turbulence, sensor noise, and obstacle density on the fly.
-- **Dynamic 3D Environment:** Live rendering of drone trajectories, obstacle fields, and tunnel structures.
+### 1-a) Simulate autonomous navigation of a drone from a start location to a goal location in a 2D environment...
+**Solution:** The drone utilizes a 2D LiDAR constraint model and implements mathematical **A* Pathfinding** (`astar_navigator.py`). The logic drives the drone to waypoints while successfully dodging randomized walls generated in `worlds/obstacle_course.wbt`.
 
-### 2. **Core Navigation Modules**
-- **1-a) A* Path Planning:** Optimal obstacle avoidance from start to goal in 2D/3D grids.
-- **1-b) PID Altitude Control:** High-precision vertical stabilization using proportional-integral-derivative logic with wind disturbance rejection.
-- **1-c) GPS-Denied SLAM:** Sensor fusion using LIDAR data for lateral correction and localization in unknown 3D tunnels.
+### 1-b) Simulate a drone using PID controller such that it maintains a certain vertical height and avoids obstacles.
+**Solution:** The `pid_altitude_controller.py` directly manipulates 4 motor velocities based on simulated Inertial/GPS units. A strict mathematical Proportional-Integral-Derivative loop maintains steady altitude while using the front-facing LiDAR cone to forcefully pitch backward (`-2.0` velocity vector) to dodge obstacles.
 
-### 3. **Architectural Design Choices (Why Custom?)**
-Instead of relying on heavy physics engines like Microsoft AirSim or NVIDIA Isaac Sim, this project implements a **zero-dependency, web-native kinematics engine**.
-- **Algorithmic Isolation:** By abstracting raw LIDAR ray-tracing into direct 2D/3D Occupancy Grids, we isolate and prove the core A* and PID math without external engine noise.
-- **Accessibility:** A decoupled Python Backend + Three.js Frontend means the entire autonomy visualization runs instantly in a browser without gigabytes of gaming-engine overhead.
+### 1-c) Develop an autonomous navigation system for underground or tunnel environments where GPS signals cannot reach...
+**Solution:** We built an actual 3D underground tunnel environment (`worlds/underground_tunnel.wbt`). The `Mavic 2 PRO` quadrotor is outfitted entirely with alternative sensing: **RGB-D Vision Cameras** and a high-resolution **360 LiDAR Node** enabling full VSLAM capabilities without GPS dependency. 
 
 ---
 
-## 🛠 Tech Stack
-- **Onboard Compute:** NVIDIA Jetson (Simulated performance parameters)
-- **Sensing:** RGB-D Depth Vision & 2D LIDAR
-- **Software:** Python 3, Flask, Three.js, NumPy, Matplotlib
-- **Framework:** ROS2 compatible architecture
+## 🏗️ Architecture Design
+
+We migrated from lightweight web-simulators directly into **Webots**, guaranteeing physics-accurate drone dynamics and immediate ROS2 bridging:
+
+- `worlds/`: Contains `.wbt` files describing the tunnels, physics rules, and drones.
+- `controllers/`: Contains the autonomous brain logic accessing the Webots `Robot` API.
+- `ros2_ws/`: Our dedicated hackathon deliverable for `webots_ros2`. It launches the Webots world while subscribing/publishing ROS2 standard standard topics (e.g. `/scan`).
 
 ---
 
 ## 🏁 Quick Start: Running the Simulation
 
-### 1. Install Dependencies
+### Option 1: Native Webots
+1. Download and install **[Webots R2023b](https://cyberbotics.com/)** on your machine.
+2. Open Webots.
+3. Go to `File > Open World` and select `worlds/underground_tunnel.wbt` or `worlds/obstacle_course.wbt`.
+4. Press the "Play" triangle at the top to watch the Python Autonomy Controllers immediately launch the drone.
+
+### Option 2: ROS2 Launch (Colcon Setup)
+If running on an Ubuntu or Docker ROS2 environment (`Humble` recommended):
 ```bash
-pip install flask numpy matplotlib
+# Navigate to the workspace
+cd ros2_ws
+
+# Build the autonav packages
+colcon build
+
+# Source environment
+source install/setup.bash
+
+# Launch Webots + ROS2 Driver
+ros2 launch autonav_ros2 drone_launch.py
 ```
-
-### 2. Launch the Immersive Dashboard
-```bash
-python server.py
-```
-Then visit **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser.
-
-### 3. Run Individual Modules (CLI)
-- **Path Planning:** `python astar_navigation.py --density 0.2`
-- **PID Control:** `python pid_altitude_controller.py --altitude 15.0 --wind 2.0`
-- **SLAM Tunnel:** `python gps_denied_slam.py --noise 0.08 --drift 0.05`
-
----
-
-## 🏆 Hackathon Deliverables
-- [x] **Working Prototype:** Fully functional 3D simulation backend and frontend.
-- [x] **Validated Algorithms:** PID, A*, and SLAM tested under variable noise/drift conditions.
-- [x] **Documentation:** Comprehensive README and technical walkthrough.
-- [/] **Field Ready:** ROS2-ready logic structure for deployment on NVIDIA Jetson.
-
----
-*Developed for the Autonomous Drone AI Challenge 2026.* 🇮🇳
