@@ -1,11 +1,11 @@
 # 🚁 AutoNAV-AI: Autonomous Drone Navigation & SLAM
 
-`NVIDIA Jetson` `Webots` `SLAM` `Autonomous Navigation` `A* Pathfinding` `PID Control`
+`AutoNAV AI` `Webots` `SLAM` `Autonomous Navigation` `A* Pathfinding` `PID Control`
 
 ---
 
 ## 📄 Project Overview
-AutoNAV-AI is a high-performance autonomous drone navigation system designed for GPS-denied environments. It integrates RGB-D vision, 2D LiDAR, and onboard computation (NVIDIA Jetson) to perform real-time SLAM, obstacle avoidance, and path planning. The system utilizes the **Webots Robotics Simulator** for accurate physics simulation and modular control.
+AutoNAV-AI is a high-performance autonomous drone navigation system designed for GPS-denied environments. It integrates RGB-D vision, 2D LiDAR, and onboard computation (AutoNAV AI) to perform real-time SLAM, obstacle avoidance, and path planning. The system utilizes the **Webots Robotics Simulator** for accurate physics simulation and modular control.
 
 ### Key Capabilities
 - **GPS-Denied Navigation**: Operates in tunnels, underground, or indoor environments without relying on satellite signals.
