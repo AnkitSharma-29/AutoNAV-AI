@@ -1,59 +1,47 @@
-# 🚁 Autonomous GPS-Denied Drone Navigation & SLAM (Webots + ROS2)
+# 🚁 AutoNAV-AI: Autonomous Drone Navigation & SLAM
 
-### *Real-World Ready Autonomy for the NVIDIA Jetson Platform*
+`NVIDIA Jetson` `Webots` `SLAM` `Autonomous Navigation` `A* Pathfinding` `PID Control`
 
 ---
 
 ## 📄 Project Overview
-This project proposes a **low-cost, autonomous drone** integrating **RGB-D vision**, **2D LIDAR**, and **onboard computation (NVIDIA Jetson)** to perform real-time **SLAM**, **obstacle avoidance**, and **path planning** without GPS. 
+AutoNAV-AI is a high-performance autonomous drone navigation system designed for GPS-denied environments. It integrates RGB-D vision, 2D LiDAR, and onboard computation (NVIDIA Jetson) to perform real-time SLAM, obstacle avoidance, and path planning. The system utilizes the **Webots Robotics Simulator** for accurate physics simulation and modular control.
 
-It tackles strict hackathon problem statements by utilizing the industry-standard **Webots Robotics Simulator** and **ROS2 (Robot Operating System)**.
-
----
-
-## 🎯 Solved Hackathon Problem Statements
-
-### 1-a) Simulate autonomous navigation of a drone from a start location to a goal location in a 2D environment...
-**Solution:** The drone utilizes a 2D LiDAR constraint model and implements mathematical **A* Pathfinding** (`astar_navigator.py`). The logic drives the drone to waypoints while successfully dodging randomized walls generated in `worlds/obstacle_course.wbt`.
-
-### 1-b) Simulate a drone using PID controller such that it maintains a certain vertical height and avoids obstacles.
-**Solution:** The `pid_altitude_controller.py` directly manipulates 4 motor velocities based on simulated Inertial/GPS units. A strict mathematical Proportional-Integral-Derivative loop maintains steady altitude while using the front-facing LiDAR cone to forcefully pitch backward (`-2.0` velocity vector) to dodge obstacles.
-
-### 1-c) Develop an autonomous navigation system for underground or tunnel environments where GPS signals cannot reach...
-**Solution:** We built an actual 3D underground tunnel environment (`worlds/underground_tunnel.wbt`). The `Mavic 2 PRO` quadrotor is outfitted entirely with alternative sensing: **RGB-D Vision Cameras** and a high-resolution **360 LiDAR Node** enabling full VSLAM capabilities without GPS dependency. 
+### Key Capabilities
+- **GPS-Denied Navigation**: Operates in tunnels, underground, or indoor environments without relying on satellite signals.
+- **A* Pathfinding**: Intelligent path planning around obstacles in dynamic environments.
+- **PID Altitude Control**: Precise vertical stabilization and obstacle-aware pitching.
+- **Real-time SLAM**: Simultaneous Localization and Mapping using LiDAR and Vision.
+- **Web Dashboard**: An interactive interface to monitor and control simulation missions.
 
 ---
 
 ## 🏗️ Architecture Design
 
-We migrated from lightweight web-simulators directly into **Webots**, guaranteeing physics-accurate drone dynamics and immediate ROS2 bridging:
-
-- `worlds/`: Contains `.wbt` files describing the tunnels, physics rules, and drones.
-- `controllers/`: Contains the autonomous brain logic accessing the Webots `Robot` API.
-- `ros2_ws/`: Our dedicated hackathon deliverable for `webots_ros2`. It launches the Webots world while subscribing/publishing ROS2 standard standard topics (e.g. `/scan`).
+- `worlds/`: Webots world files (`.wbt`) defining the drone's environment and physics.
+- `controllers/`: Core autonomous logic for drone behavior and sensor processing.
+- `server.py`: Flask-based dashboard server.
 
 ---
 
-## 🏁 Quick Start: Running the Simulation
+## 🏁 How to Use
 
-### Option 1: Native Webots
-1. Download and install **[Webots R2023b](https://cyberbotics.com/)** on your machine.
-2. Open Webots.
-3. Go to `File > Open World` and select `worlds/underground_tunnel.wbt` or `worlds/obstacle_course.wbt`.
-4. Press the "Play" triangle at the top to watch the Python Autonomy Controllers immediately launch the drone.
+### 1. Requirements
+Ensure you have the following installed:
+- **Python 3.10+**
+- **Webots R2023b**
+- **Dependencies**: `pip install flask numpy matplotlib`
 
-### Option 2: ROS2 Launch (Colcon Setup)
-If running on an Ubuntu or Docker ROS2 environment (`Humble` recommended):
+### 2. Start the Dashboard
+Run the dashboard server to monitor the drone's status:
 ```bash
-# Navigate to the workspace
-cd ros2_ws
-
-# Build the autonav packages
-colcon build
-
-# Source environment
-source install/setup.bash
-
-# Launch Webots + ROS2 Driver
-ros2 launch autonav_ros2 drone_launch.py
+python server.py
 ```
+Access the interface at [http://localhost:5000](http://localhost:5000).
+
+### 3. Native Webots Simulation
+1. Open **Webots**.
+2. Go to `File > Open World` and select a world file:
+   - `worlds/underground_tunnel.wbt`: For GPS-denied SLAM testing.
+   - `worlds/obstacle_course.wbt`: For A* navigation testing.
+3. Press the **Play** button to start the simulation and autonomy controllers.
