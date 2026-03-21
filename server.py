@@ -40,6 +40,16 @@ def run_simulation(sim_type):
             cmd += ['--noise', request.args.get('noise', '0.1')]
             cmd += ['--drift', request.args.get('drift', '0.08')]
 
+        # Share config with Webots
+        config_path = os.path.join(BASE_DIR, 'dynamic_config.json')
+        config_data = {
+            'sim_type': sim_type,
+            'params': {k: v for k, v in request.args.items()}
+        }
+        with open(config_path, 'w') as f:
+            import json
+            json.dump(config_data, f)
+
         try:
             # Run the python script
             subprocess.run(cmd, check=True, cwd=BASE_DIR)

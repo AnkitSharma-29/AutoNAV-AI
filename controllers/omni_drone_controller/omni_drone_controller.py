@@ -9,6 +9,7 @@ Features:
 
 import math
 import numpy as np
+import random
 from controller import Robot, Motor, InertialUnit, Gyro, Compass, Lidar, Keyboard
 
 class PID:
@@ -75,14 +76,26 @@ class OmniDroneAI(Robot):
 
         # --- AI & Navigation State ---
         self.target_alt = 2.0
-        self.local_pos = np.array([0.0, 0.0, 0.0]) # [x, altitude, z] rel to start
+        self.local_pos = np.array([0.0, 0.0, 0.0])
         self.vel_est = np.array([0.0, 0.0, 0.0])
         self.last_time = self.getTime()
         
-        self.mode = "AUTO" # AI / MANUAL
-        self.target_wp = np.array([10.0, 0.0, 10.0]) # Local target 10m fwd, 10m right
+        self.mode = "AUTO" 
+        self.state = "PRE_FLIGHT_ANALYSIS" # PRE_FLIGHT_ANALYSIS, NORMAL, RECOVERY
+        self.target_wp = np.array([10.0, 0.0, 10.0])
         
-        print("Omni-Drone AI Initialized. Press 'M' to toggle Manual mode.")
+        # Recovery / Stuck detection
+        self.stall_timer = 0
+        self.recovery_step = 0
+        self.recovery_timer = 0
+        self.last_pos = np.array([0.0, 0.0, 0.0])
+        self.analysis_timer = 0
+        self.analysis_reported = False
+        self.start_yaw = 0.0
+        self.sweep_yaw_sum = 0.0
+        self.prev_front_dist = 10.0
+        
+        print("Omni-Drone AI Initialized. State: PRE_FLIGHT_ANALYSIS")
 
     def update_odometry(self, dt):
         """Estimate displacement without GPS using IMU and orientation"""
@@ -120,42 +133,153 @@ class OmniDroneAI(Robot):
             ranges = self.lidar.getRangeImage()
             num_points = len(ranges)
             if num_points > 0:
-                # Assuming 360 Lidar: 0 is front, clockwise
+                # Broaden the sensing arc (Check 20% of the total points for each direction)
+                arc = num_points // 8
                 mid = num_points // 2
-                sensors['front'] = min(ranges[mid-10 : mid+10])
-                sensors['left'] = min(ranges[mid+num_points//4-10 : mid+num_points//4+10])
-                sensors['right'] = min(ranges[mid-num_points//4-10 : mid-num_points//4+10])
-                sensors['back'] = min(min(ranges[:10]), min(ranges[-10:]))
+                sensors['front'] = min(ranges[mid-arc : mid+arc])
+                sensors['left'] = min(ranges[mid+num_points//4-arc : mid+num_points//4+arc])
+                sensors['right'] = min(ranges[mid-num_points//4-arc : mid-num_points//4+arc])
+                sensors['back'] = min(min(ranges[:arc]), min(ranges[-arc:]))
+                
+                # NEW: Find the "Best Exit" (Direction with max clearance)
+                best_idx = np.argmax(ranges)
+                # Convert lidar index to relative angle (0 is front)
+                angle_offset = (best_idx - mid) / num_points * 2 * math.pi
+                sensors['best_exit_angle'] = angle_offset
+                sensors['max_clearance'] = ranges[best_idx]
+                
+                # Check for Direct Line-of-Sight to Goal
+                target_vec = self.target_wp - self.local_pos
+                target_dist = np.linalg.norm(target_vec)
+                if target_dist > 0.001:
+                    target_yaw = math.atan2(target_vec[0], target_vec[2])
+                    angle_offset_goal = (target_yaw) / (2 * math.pi) * num_points
+                    idx = int((mid + angle_offset_goal) % num_points)
+                    win = 5
+                    dist_to_obs = min(ranges[idx-win : idx+win]) if idx-win > 0 and idx+win < num_points else 10.0
+                    sensors['goal_los'] = dist_to_obs > target_dist
+                else:
+                    sensors['goal_los'] = False
             
         return sensors
 
-    def run_ai_logic(self, sensors):
-        """Autonomous AI navigation using reactive potential fields"""
+    def run_ai_logic(self, sensors, dt, current_yaw):
+        """Autonomous AI navigation using reactive potential fields with recovery states"""
         fwd_input = 0.0
         side_input = 0.0
         yaw_input = 0.0
         
-        # Collision Avoidance
+        # 1. State: PRE_FLIGHT_ANALYSIS (Guaranteed 360-degree Scan)
+        if self.state == "PRE_FLIGHT_ANALYSIS":
+            if self.analysis_timer == 0:
+                self.start_yaw = current_yaw
+                print("Starting Precision 360° Surroundings Scan...")
+            
+            self.analysis_timer += dt
+            # Integrate yaw change to ensure full 360
+            yaw_input = 3.0 # Rotate faster for efficiency
+            self.sweep_yaw_sum += abs(yaw_input * dt)
+
+            if self.sweep_yaw_sum > 6.4 and not self.analysis_reported: # > 2*PI
+                print(f"--- 360° Surroundings Report ---")
+                print(f"Clearance: F:{sensors['front']:.1f}m B:{sensors['back']:.1f}m L:{sensors['left']:.1f}m R:{sensors['right']:.1f}m")
+                print(f"Best Exit: {math.degrees(sensors['best_exit_angle']):.1f}° | Max Gap: {sensors['max_clearance']:.1f}m")
+                self.analysis_reported = True
+                
+                if min(sensors['front'], sensors['left'], sensors['right'], sensors['back']) < 2.5:
+                    print("CRITICAL: Nearby Obstacle! Adjusting launch to 5m Altitude.")
+                    self.target_alt = 5.0
+            
+            if self.sweep_yaw_sum > 7.0: # Ensure scan is fully finished
+                if min(sensors['front'], sensors['left'], sensors['right'], sensors['back']) < 1.2:
+                    print("Emergency Nudge towards Best Exit...")
+                    fwd_input = 6.0 * math.cos(sensors['best_exit_angle'])
+                    side_input = 6.0 * math.sin(sensors['best_exit_angle'])
+                    if self.analysis_timer > 5.0:
+                         self.state = "NORMAL"
+                         print("Escape move complete. READY.")
+                    return fwd_input, side_input, 0.0
+                else:
+                    self.state = "NORMAL"
+                    print("360° Analysis Complete. Launching...")
+            return 0.0, 0.0, yaw_input
+
+        # 2. Collision Avoidance (VIRTUAL BUMPER & Exponential Repulsion)
         avoid_fwd = 0.0
         avoid_side = 0.0
+        HARD_LIMIT = 2.5 # Minimum particular distance to maintain
+        FORCE_K = 6.0 # Much stronger repulsion
         
-        SAFE_DIST = 1.5
-        
-        if sensors['front'] < SAFE_DIST: avoid_fwd -= (SAFE_DIST - sensors['front']) * 2.0
-        if sensors['back'] < SAFE_DIST: avoid_fwd += (SAFE_DIST - sensors['back']) * 2.0
-        if sensors['left'] < SAFE_DIST: avoid_side += (SAFE_DIST - sensors['left']) * 2.0
-        if sensors['right'] < SAFE_DIST: avoid_side -= (SAFE_DIST - sensors['right']) * 2.0
+        v_fwd = self.vel_est[2] 
+        v_side = self.vel_est[0]
 
-        # AI Waypoint Seeking
+        def calc_repulsion(dist, vel_component):
+            if dist < HARD_LIMIT:
+                # Hard Limit Brake: If too close, zero out velocity components towards obstacle
+                rep = FORCE_K / (max(0.1, dist)**2)
+                if vel_component > 0: rep *= 4.0 # Forceful brake
+                return rep
+            return 0.0
+
+        avoid_fwd -= calc_repulsion(sensors['front'], v_fwd)
+        avoid_fwd += calc_repulsion(sensors['back'], -v_fwd)
+        avoid_side += calc_repulsion(sensors['left'], -v_side)
+        avoid_side -= calc_repulsion(sensors['right'], v_side)
+        
+        # 3. Rapid Evasion (Sudden Obstacle)
+        if self.prev_front_dist - sensors['front'] > 1.2:
+            print("SUDDEN OBSTACLE! RAPID EVASION...")
+            self.target_alt += 2.0
+            avoid_fwd -= 15.0
+        self.prev_front_dist = sensors['front']
+
+        # 3. State: RECOVERY (Aggressive Escape)
+        if self.state == "RECOVERY":
+            self.recovery_timer += dt
+            # Step 1: Intelligent Retreat (Towards best exit)
+            if self.recovery_step == 0: 
+                fwd_input = 6.0 * math.cos(sensors['best_exit_angle'])
+                side_input = 6.0 * math.sin(sensors['best_exit_angle'])
+                if self.recovery_timer > 1.5: 
+                    self.recovery_step = 1; self.recovery_timer = 0
+                    print("Retreat done. Climbing for clearance...")
+            elif self.recovery_step == 1: # Ultra Lift
+                self.target_alt += 2.0 # Boost way up to clear "Big" obstacles
+                if self.recovery_timer > 1.2: self.recovery_step = 2; self.recovery_timer = 0
+            elif self.recovery_step == 2: # High-speed random burst to reset pathing
+                fwd_input = (random.random() - 0.5) * 8.0
+                side_input = (random.random() - 0.5) * 8.0
+                if self.recovery_timer > 0.8:
+                    self.state = "NORMAL"; self.stall_timer = 0; print("Recovery Finalized.")
+            
+            return fwd_input, side_input, 0.0
+
+        # 4. State: NORMAL Navigation
         if self.mode == "AUTO":
             dx = self.target_wp[0] - self.local_pos[0]
             dz = self.target_wp[2] - self.local_pos[2]
             dist_to_wp = math.sqrt(dx**2 + dz**2)
             
-            if dist_to_wp > 0.5:
-                # Seek velocity
-                seek_fwd = max(-1.0, min(1.0, dx * 0.2))
-                seek_side = max(-1.0, min(1.0, dz * 0.2))
+            # Stuck Detection
+            dist_moved = np.linalg.norm(self.local_pos - self.last_pos)
+            if dist_moved < 0.05 and dist_to_wp > 1.0:
+                self.stall_timer += dt
+                if self.stall_timer > 3.0:
+                    self.state = "RECOVERY"; self.recovery_step = 0; self.recovery_timer = 0
+                    print("Drone Stuck! Initiating Recovery...")
+            else:
+                self.stall_timer = 0
+            self.last_pos = self.local_pos.copy()
+
+            if dist_to_wp > 1.0:
+                # Flexible Path Seeking (Increased velocity caps)
+                # MOD: If Goal LOS is clear, ignore local waypoint and go straight!
+                if sensors.get('goal_los', False):
+                    seek_fwd = max(-4.0, min(4.0, dx * 1.0))
+                    seek_side = max(-4.0, min(4.0, dz * 1.0))
+                else:
+                    seek_fwd = max(-3.0, min(3.0, dx * 0.8))
+                    seek_side = max(-3.0, min(3.0, dz * 0.8))
                 
                 fwd_input = seek_fwd + avoid_fwd
                 side_input = seek_side + avoid_side
@@ -196,7 +320,7 @@ class OmniDroneAI(Robot):
                 if key == Keyboard.UP: self.target_alt += 0.05
                 if key == Keyboard.DOWN: self.target_alt -= 0.05
             else:
-                fwd, side, yaw_cmd = self.run_ai_logic(sensors)
+                fwd, side, yaw_cmd = self.run_ai_logic(sensors, dt, yaw_curr)
 
             # Flight Control
             roll_curr, pitch_curr, yaw_curr = self.imu.getRollPitchYaw()

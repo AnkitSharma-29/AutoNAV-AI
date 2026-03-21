@@ -20,6 +20,9 @@ class Node:
         return self.f < other.f
 
 def astar(grid, start, end):
+    # Weighted A* for faster discovery
+    weight = 3.0
+    
     # Create start and end nodes
     start_node = Node(start, None)
     end_node = Node(end, None)
@@ -68,9 +71,18 @@ def astar(grid, start, end):
                 continue
 
             # Calculate costs
-            child.g = current_node.g + 1
-            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
-            child.f = child.g + child.h
+            # Octile distance for 8-way movement
+            dx = abs(child.position[0] - end_node.position[0])
+            dy = abs(child.position[1] - end_node.position[1])
+            
+            step_dx = abs(child.position[0] - current_node.position[0])
+            step_dy = abs(child.position[1] - current_node.position[1])
+            step_cost = 1.414 if (step_dx == 1 and step_dy == 1) else 1.0
+            
+            child.g = current_node.g + step_cost
+            child.h = (dx + dy) + (1.414 - 2) * min(dx, dy)
+            # Ultra-weighted A* (Weight = 10.0) for near-instant execution
+            child.f = child.g + (10.0 * child.h)
 
             # Is child already in open list with lower cost?
             if any(open_node.position == child.position and child.g > open_node.g for open_node in open_list):
