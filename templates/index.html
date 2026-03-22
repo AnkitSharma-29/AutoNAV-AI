@@ -707,23 +707,22 @@
             if (obsStr) params += `&manual_obs=${obsStr}`;
             if (type === 'pid') params += `&altitude=${document.getElementById('pid-alt').value}`;
 
-            fetch(`/run/${type}${params}`).then(res => res.json()).then(data => {
-                if (!data.success) { status.innerText = 'Error!'; return; }
-                fetch(`/static/${type}_data.json?` + Date.now()).then(res => res.json()).then(sim => {
-                    const path = sim.path || sim; if (path.length === 0) return status.innerText = 'Blocked!';
-                    
-                    if (type === 'astar') drawPath(path);
+            fetch(`/run/${type}${params}`).then(res => res.json()).then(res => {
+                if (!res.success) { status.innerText = 'Error!'; return; }
+                const sim = res.data;
+                const path = sim.path || sim; if (path.length === 0) return status.innerText = 'Blocked!';
+                
+                if (type === 'astar') drawPath(path);
 
-                    if (document.getElementById('auto-obs-toggle').checked && sim.obstacles) {
-                        autoObstacles.forEach(o => scene.remove(o)); autoObstacles = [];
-                        sim.obstacles.forEach(o => {
-                            const h = 2 + Math.random()*3;
-                            const obs = new THREE.Mesh(new THREE.BoxGeometry(1.1, h, 1.1), new THREE.MeshStandardMaterial({color: 0x334155}));
-                            obs.position.set(o.x - 9.5, h/2, o.z - 9.5); scene.add(obs); autoObstacles.push(obs); collidableObjects.push(obs); 
-                        });
-                    }
-                    status.innerText = 'Sim Active'; isAutoPilot = true; toggleAuto();
-                });
+                if (document.getElementById('auto-obs-toggle').checked && sim.obstacles) {
+                    autoObstacles.forEach(o => scene.remove(o)); autoObstacles = [];
+                    sim.obstacles.forEach(o => {
+                        const h = 2 + Math.random()*3;
+                        const obs = new THREE.Mesh(new THREE.BoxGeometry(1.1, h, 1.1), new THREE.MeshStandardMaterial({color: 0x334155}));
+                        obs.position.set(o.x - 9.5, h/2, o.z - 9.5); scene.add(obs); autoObstacles.push(obs); collidableObjects.push(obs); 
+                    });
+                }
+                status.innerText = 'Sim Active'; isAutoPilot = true; toggleAuto();
             });
         }
 
