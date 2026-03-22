@@ -2,82 +2,117 @@ import numpy as np
 import heapq
 import random
 import json
+import math
+import time
 
 # ═══════════════════════════════════════════════════
-# A* PATHFINDING LOGIC
+# OPTIMIZED NAVIGATION LOGIC (Weighted Lazy Theta*)
 # ═══════════════════════════════════════════════════
 
 class Node:
     def __init__(self, position, parent=None):
         self.position = position
         self.parent = parent
-        self.g = 0 
-        self.h = 0 
-        self.f = 0 
+        self.g = float('inf')
+        self.h = 0.0
+        self.f = float('inf')
 
     def __eq__(self, other):
         return self.position == other.position
     
     def __lt__(self, other):
+        if self.f == other.f:
+            return self.g > other.g
         return self.f < other.f
 
-def astar_core(grid, start, end, weight=3.0):
-    start_node = Node(start, None)
-    end_node = Node(end, None)
-    open_list = []
-    closed_list = set()
-    # Heap stores (f, node)
-    heapq.heappush(open_list, (0, start_node))
+def line_of_sight(grid, start, end):
+    x0, y0 = start
+    x1, y1 = end
+    dx, dy = abs(x1 - x0), abs(y1 - y0)
+    x, y = x0, y0
+    n = 1 + dx + dy
+    x_inc = 1 if x1 > x0 else -1
+    y_inc = 1 if y1 > y0 else -1
+    error = dx - dy
+    dx *= 2
+    dy *= 2
 
+    for _ in range(n):
+        if not (0 <= x < grid.shape[0] and 0 <= y < grid.shape[1]): return False
+        if grid[x, y] != 0: return False
+        if x == x1 and y == y1: break
+        if error > 0:
+            x += x_inc
+            error -= dy
+        elif error < 0:
+            y += y_inc
+            error += dx
+        else:
+            x += x_inc
+            y += y_inc
+            error += dx - dy
+    return True
+
+def get_distance(p1, p2):
+    return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+def inflate_grid(grid, radius=1):
+    inflated = np.copy(grid)
+    r_idx, c_idx = np.where(grid != 0)
+    for r, c in zip(r_idx, c_idx):
+        for dr in range(-radius, radius + 1):
+            for dc in range(-radius, radius + 1):
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < grid.shape[0] and 0 <= nc < grid.shape[1]:
+                    inflated[nr, nc] = 1
+    return inflated
+
+def weighted_lazy_theta_star(grid, start, end, weight=3.5):
+    start_node = Node(start)
+    start_node.g = 0.0
+    start_node.parent = start_node
+    
+    def h(pos):
+        dx, dy = abs(pos[0] - end[0]), abs(pos[1] - end[1])
+        return (dx + dy) + (1.414 - 2) * min(dx, dy)
+
+    start_node.h = h(start)
+    start_node.f = weight * start_node.h
+    open_list = [start_node]
+    g_score = {start: 0.0}
+    closed_set = set()
+    start_time = time.time()
+    
     while open_list:
-        # Pop node with lowest f
-        _, current_node = heapq.heappop(open_list)
-        closed_list.add(current_node.position)
+        if time.time() - start_time > 0.5: break
+        current = heapq.heappop(open_list)
+        if current.position in closed_set: continue
+        if current.parent.position != current.position:
+            if not line_of_sight(grid, current.parent.position, current.position): continue
 
-        if current_node.position == end_node.position:
+        closed_set.add(current.position)
+        if current.position == end:
             path = []
-            curr = current_node
-            while curr:
+            curr = current
+            while curr.parent != curr:
                 path.append(curr.position)
                 curr = curr.parent
+            path.append(start)
             return path[::-1]
 
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
-            node_pos = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
+            neighbor_pos = (current.position[0] + dx, current.position[1] + dy)
+            if not (0 <= neighbor_pos[0] < grid.shape[0] and 0 <= neighbor_pos[1] < grid.shape[1]): continue
+            if grid[neighbor_pos[0], neighbor_pos[1]] != 0: continue
+            if neighbor_pos in closed_set: continue
 
-            if node_pos[0] >= len(grid) or node_pos[0] < 0 or node_pos[1] >= len(grid[0]) or node_pos[1] < 0:
-                continue
-            if grid[node_pos[0]][node_pos[1]] != 0:
-                continue
-
-            child = Node(node_pos, current_node)
-            if child.position in closed_list:
-                continue
-
-            dx = abs(child.position[0] - current_node.position[0])
-            dy = abs(child.position[1] - current_node.position[1])
-            step_cost = 1.414 if (dx == 1 and dy == 1) else 1.0
-            
-            child.g = current_node.g + step_cost
-            h_dx = abs(child.position[0] - end_node.position[0])
-            h_dy = abs(child.position[1] - end_node.position[1])
-            child.h = float((h_dx + h_dy) + (1.414 - 2) * min(h_dx, h_dy))
-            
-            # Tie-breaker
-            p_dx = child.position[0] - start_node.position[0]
-            p_dy = child.position[1] - start_node.position[1]
-            g_dx = end_node.position[0] - start_node.position[0]
-            g_dy = end_node.position[1] - start_node.position[1]
-            cross = abs(p_dx * g_dy - g_dx * p_dy)
-            child.h += cross * 0.001
-            
-            child.f = child.g + (weight * child.h)
-
-            # Check if this node is already in open_list with a lower g
-            if any(child.position == open_node[1].position and child.g >= open_node[1].g for open_node in open_list):
-                continue
-
-            heapq.heappush(open_list, (child.f, child))
+            tentative_g = current.parent.g + get_distance(current.parent.position, neighbor_pos)
+            if neighbor_pos not in g_score or tentative_g < g_score[neighbor_pos]:
+                g_score[neighbor_pos] = tentative_g
+                neighbor = Node(neighbor_pos, current.parent)
+                neighbor.g, neighbor.h = tentative_g, h(neighbor_pos)
+                neighbor.f = tentative_g + (weight * neighbor.h)
+                heapq.heappush(open_list, neighbor)
     return None
 
 def run_astar_sim(params):
@@ -85,144 +120,83 @@ def run_astar_sim(params):
     start_str = params.get('start', '0,0')
     goal_str = params.get('goal', '19,19')
     manual_obs = params.get('manual_obs', '')
-
     grid_size = 20
     grid = np.zeros((grid_size, grid_size))
     
     s_coords = [int(float(x)) for x in start_str.split(',')]
     g_coords = [int(float(x)) for x in goal_str.split(',')]
-    start = (s_coords[1], s_coords[0]) 
-    goal = (g_coords[1], g_coords[0])
+    start, goal = (s_coords[1], s_coords[0]), (g_coords[1], g_coords[0])
 
     if manual_obs:
         for obs in manual_obs.split(';'):
             if obs:
                 c, r = [int(float(x)) for x in obs.split(',')]
-                if 0 <= r < grid_size and 0 <= c < grid_size:
-                    grid[r, c] = 1
+                if 0 <= r < grid_size and 0 <= c < grid_size: grid[r, c] = 1
 
-    # Random obstacles
     for r in range(grid_size):
         for c in range(grid_size):
             if grid[r, c] == 0:
                 if abs(r - start[0]) <= 1 and abs(c - start[1]) <= 1: continue
                 if abs(r - goal[0]) <= 1 and abs(c - goal[1]) <= 1: continue
-                if random.random() < density:
-                    grid[r, c] = 1
+                if random.random() < density: grid[r, c] = 1
 
-    path = astar_core(grid, start, goal)
+    search_grid = inflate_grid(grid, radius=1)
+    search_grid[start[0], start[1]] = 0
+    search_grid[goal[0], goal[1]] = 0
+    path = weighted_lazy_theta_star(search_grid, start, goal, weight=3.0)
     
     resp = {
+        "success": True if path else False,
         "start": {"x": float(start[1]), "z": float(start[0])},
         "goal": {"x": float(goal[1]), "z": float(goal[0])},
-        "obstacles": []
+        "obstacles": [{"x": float(c), "y": 0.5, "z": float(r)} for r in range(grid_size) for c in range(grid_size) if grid[r, c] == 1],
+        "path": [{"x": float(p[1]), "y": 0.5, "z": float(p[0])} for p in path] if path else []
     }
-    
-    for r in range(grid_size):
-        for c in range(grid_size):
-            if grid[r, c] == 1:
-                resp["obstacles"].append({"x": float(c), "y": 0.5, "z": float(r)})
-    
-    resp["path"] = [{"x": float(p[1]), "y": 0.5, "z": float(p[0])} for p in path] if path else []
-    
-    # NEW: Write to disk for local Webots support (optional on Vercel)
-    try:
-        with open('astar_data.json', 'w') as f:
-            json.dump(resp, f)
-    except:
-        pass # Ignore errors on read-only filesystems like Vercel
-        
     return resp
 
 # ═══════════════════════════════════════════════════
 # PID ALTITUDE LOGIC
 # ═══════════════════════════════════════════════════
 
-class PIDController:
-    def __init__(self, kp, ki, kd, setpoint):
-        self.kp, self.ki, self.kd = kp, ki, kd
-        self.setpoint = setpoint
-        self.prev_error = 0
-        self.integral = 0
-
-    def compute(self, measurement, dt):
-        error = self.setpoint - measurement
-        self.integral += error * dt
-        derivative = (error - self.prev_error) / dt
-        self.prev_error = error
-        return (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative)
-
 def run_pid_sim(params):
     target_alt = float(params.get('altitude', 10.0))
     wind = float(params.get('wind', 0.0))
-    
     dt, duration = 0.1, 10.0
     steps = int(duration / dt)
-    
-    pid = PIDController(15.0, 0.5, 8.0, target_alt)
+    kp, ki, kd = 15.0, 0.5, 8.0
     alt, vel, mass, grav = 0.0, 0.0, 1.0, 9.81
-    
+    prev_error, integral = 0, 0
     traj = []
     for i in range(steps):
         t = i * dt
-        out = pid.compute(alt, dt)
+        error = target_alt - alt
+        integral += error * dt
+        derivative = (error - prev_error) / dt
+        prev_error = error
+        out = (kp * error) + (ki * integral) + (kd * derivative)
         noise = (random.random() - 0.5) * wind
         thrust = max(0, min(out + (mass * grav) + noise, 40.0))
-        
         accel = (thrust - (mass * grav)) / mass
         vel += accel * dt
         alt += vel * dt
         if alt < 0: alt, vel = 0, 0
-        
         traj.append({"x": 0, "y": float(alt), "z": 0, "t": float(t)})
-    
-    result = {"path": traj}
-    try:
-        with open('pid_data.json', 'w') as f:
-            json.dump(traj, f)
-    except:
-        pass
-        
-    return result
+    return {"path": traj}
 
 # ═══════════════════════════════════════════════════
 # SLAM LOGIC
 # ═══════════════════════════════════════════════════
 
 def run_slam_sim(params):
-    noise = float(params.get('noise', 0.1))
-    drift = float(params.get('drift', 0.08))
-    
+    noise = float(params.get('noise', 0.08))
+    drift = float(params.get('drift', 0.04))
     dt, duration = 0.1, 10.0
     steps = int(duration / dt)
-    
     true_pos = np.array([0.0, 2.0])
-    est_pos = np.array([0.0, 2.0])
     traj = []
-    
+    history_left, history_right = [], []
     for i in range(steps):
-        # Move
-        vel = np.array([1.0, 0.0])
-        actual_vel = vel + np.random.normal(0, noise, 2)
-        true_pos += actual_vel * dt
-        est_pos += vel * dt
-        
-        # Drift
+        true_pos += (np.array([1.0, 0.0]) + np.random.normal(0, noise, 2)) * dt
         true_pos[1] += (random.random() - 0.5) * drift
-        
-        # Sense & Correct (every 3 steps)
-        if i % 3 == 0:
-            d_left = true_pos[1]
-            d_right = 4.0 - d_left
-            est_pos[1] = (d_left + (4.0 - d_right)) / 2
-            
         traj.append({"x": float(true_pos[0]), "y": 1.0, "z": float(true_pos[1])})
-        
-    result = {"path": traj}
-    try:
-        with open('slam_data.json', 'w') as f:
-            json.dump(traj, f)
-    except:
-        pass
-        
-    return result
+    return {"path": traj}
