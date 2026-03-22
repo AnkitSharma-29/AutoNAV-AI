@@ -673,21 +673,20 @@
                     isReplanning = false;
                     return; 
                 }
-                fetch(`/static/astar_data.json?` + Date.now()).then(res => res.json()).then(sim => {
-                    const path = sim.path || sim; 
-                    if (path.length === 0) {
-                        document.getElementById('astar-status').innerText = '⛔ NO PATH AVAILABLE';
-                        document.getElementById('astar-status').style.color = "#ef4444";
-                        isReplanning = false;
-                        return;
-                    }
-                    drawPath(path);
-                    document.getElementById('astar-status').innerText = '✅ NEW PATH FOUND';
-                    document.getElementById('astar-status').style.color = "#34d399";
-                    
-                    stuckTimer = 0; // Reset blockage timer
+                const sim = data.data;
+                const path = sim.path || sim; 
+                if (path.length === 0) {
+                    document.getElementById('astar-status').innerText = '⛔ NO PATH AVAILABLE';
+                    document.getElementById('astar-status').style.color = "#ef4444";
                     isReplanning = false;
-                });
+                    return;
+                }
+                drawPath(path);
+                document.getElementById('astar-status').innerText = '✅ NEW PATH FOUND';
+                document.getElementById('astar-status').style.color = "#34d399";
+                
+                stuckTimer = 0; // Reset blockage timer
+                isReplanning = false;
             }).catch(() => { isReplanning = false; });
         }
 
@@ -707,10 +706,10 @@
             if (obsStr) params += `&manual_obs=${obsStr}`;
             if (type === 'pid') params += `&altitude=${document.getElementById('pid-alt').value}`;
 
-            fetch(`/run/${type}${params}`).then(res => res.json()).then(res => {
-                if (!res.success) { status.innerText = 'Error!'; return; }
-                const sim = res.data;
-                const path = sim.path || sim; if (path.length === 0) return status.innerText = 'Blocked!';
+            fetch(`/run/${type}${params}`).then(res => res.json()).then(data => {
+                if (!data.success) { status.innerText = 'Error!'; return; }
+                const sim = data.data;
+                const path = sim.path || sim; if (path.length === 0 && type === 'astar') return status.innerText = 'Blocked!';
                 
                 if (type === 'astar') drawPath(path);
 

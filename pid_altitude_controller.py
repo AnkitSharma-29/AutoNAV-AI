@@ -48,12 +48,7 @@ class DroneSimulator:
     def get_altitude(self):
         return self.altitude
 
-def run_simulation():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--altitude", type=float, default=10.0)
-    parser.add_argument("--wind", type=float, default=0.0)
-    args = parser.parse_args()
-
+def run_pid(target_altitude=10.0, wind_strength=0.0, save_files=True):
     # Simulation parameters
     dt = 0.1
     duration = 10.0
@@ -63,8 +58,6 @@ def run_simulation():
     kp = 15.0
     ki = 0.5
     kd = 8.0
-    target_altitude = args.altitude
-    wind_strength = args.wind
     
     pid = PIDController(kp, ki, kd, target_altitude)
     drone = DroneSimulator(mass=1.0)
@@ -73,19 +66,13 @@ def run_simulation():
     times = []
     thrusts = []
     
-    print(f"Starting PID Simulation (Target: {target_altitude}m, Wind: {wind_strength})")
-    
     for i in range(steps):
         current_time = i * dt
         current_alt = drone.get_altitude()
         
-        # PID calculates required thrust
         control_output = pid.compute(current_alt, dt)
-        
-        # Apply wind disturbance
         noise = (random.random() - 0.5) * wind_strength
         
-        # Total thrust = PID_correction + Hover_Thrust + Wind
         thrust = control_output + (drone.mass * drone.gravity) + noise
         thrust = max(0, min(thrust, 40.0)) 
         
@@ -95,28 +82,38 @@ def run_simulation():
         times.append(current_time)
         thrusts.append(thrust)
 
-    # Export JSON data for 3D visualization
+    # Export JSON data
     traj_data = [{"x": 0, "y": float(alt), "z": 0, "t": float(t)} for alt, t in zip(altitudes, times)]
-    with open('pid_data.json', 'w') as f:
-        json.dump(traj_data, f)
+    
+    if save_files:
+        with open('pid_data.json', 'w') as f:
+            json.dump(traj_data, f)
 
-    # Plotting Results
-    plt.figure(figsize=(10, 6))
-    plt.subplot(2, 1, 1)
-    plt.plot(times, altitudes, label='Actual Altitude', color='blue')
-    plt.axhline(y=target_altitude, color='red', linestyle='--', label='Target')
-    plt.ylabel('Altitude (m)')
-    plt.title(f'Drone Altitude PID (Wind: {wind_strength})')
-    plt.grid(True, alpha=0.3)
-    
-    plt.subplot(2, 1, 2)
-    plt.plot(times, thrusts, label='Thrust Output', color='green')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Thrust (N)')
-    plt.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('altitude_pid_plot.png')
+        # Plotting Results
+        plt.figure(figsize=(10, 6))
+        plt.subplot(2, 1, 1)
+        plt.plot(times, altitudes, label='Actual Altitude', color='blue')
+        plt.axhline(y=target_altitude, color='red', linestyle='--', label='Target')
+        plt.ylabel('Altitude (m)')
+        plt.title(f'Drone Altitude PID (Wind: {wind_strength})')
+        plt.grid(True, alpha=0.3)
+        
+        plt.subplot(2, 1, 2)
+        plt.plot(times, thrusts, label='Thrust Output', color='green')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Thrust (N)')
+        plt.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig('altitude_pid_plot.png')
+        plt.close()
+
+    return traj_data
 
 if __name__ == "__main__":
-    run_simulation()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--altitude", type=float, default=10.0)
+    parser.add_argument("--wind", type=float, default=0.0)
+    args = parser.parse_args()
+
+    run_pid(args.altitude, args.wind)

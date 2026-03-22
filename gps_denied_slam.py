@@ -29,12 +29,7 @@ class GPSDeniedDrone:
         corrected_y = (dist_left + (tunnel_width - dist_right)) / 2
         self.est_pos[1] = corrected_y
 
-def run_slam_simulation():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--noise", type=float, default=0.08)
-    parser.add_argument("--drift", type=float, default=0.04)
-    args = parser.parse_args()
-
+def run_slam(noise=0.08, drift=0.04, save_files=True):
     drone = GPSDeniedDrone()
     dt = 0.1
     duration = 10.0
@@ -46,16 +41,10 @@ def run_slam_simulation():
     tunnel_width = 4.0
     target_velocity = np.array([1.0, 0.0])
     
-    print(f"Starting SLAM Simulation (Noise: {args.noise}, Drift: {args.drift})")
-    
     for i in range(steps):
-        # 1. Prediction with noise
-        drone.move(target_velocity, dt, noise_sigma=args.noise)
+        drone.move(target_velocity, dt, noise_sigma=noise)
+        drone.true_pos[1] += (random.random() - 0.5) * drift
         
-        # 2. Continuous drift
-        drone.true_pos[1] += (random.random() - 0.5) * args.drift
-        
-        # 3. Measurement (Lidar SLAM)
         if i % 3 == 0: 
             d_left, d_right = drone.get_lidar_readings(tunnel_width)
             drone.sensor_fusion_update(d_left, d_right, tunnel_width)
@@ -66,21 +55,30 @@ def run_slam_simulation():
     true_path = np.array(true_path)
     est_path = np.array(est_path)
     
-    # Export JSON
     traj_data = [{"x": float(p[0]), "y": 1.0, "z": float(p[1])} for p in true_path]
-    with open('slam_data.json', 'w') as f:
-        json.dump(traj_data, f)
+    
+    if save_files:
+        with open('slam_data.json', 'w') as f:
+            json.dump(traj_data, f)
 
-    # Plotting
-    plt.figure(figsize=(10, 5))
-    plt.axhline(y=0, color='black', linewidth=3, label='Tunnel Wall')
-    plt.axhline(y=tunnel_width, color='black', linewidth=3)
-    plt.plot(true_path[:, 0], true_path[:, 1], 'g-', label='Actual Path')
-    plt.plot(est_path[:, 0], est_path[:, 1], 'r--', label='SLAM Estimate')
-    plt.title(f'GPS-Denied Navigation (Noise: {args.noise})')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.savefig('gps_denied_slam_plot.png')
+        # Plotting
+        plt.figure(figsize=(10, 5))
+        plt.axhline(y=0, color='black', linewidth=3, label='Tunnel Wall')
+        plt.axhline(y=tunnel_width, color='black', linewidth=3)
+        plt.plot(true_path[:, 0], true_path[:, 1], 'g-', label='Actual Path')
+        plt.plot(est_path[:, 0], est_path[:, 1], 'r--', label='SLAM Estimate')
+        plt.title(f'GPS-Denied Navigation (Noise: {noise})')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.savefig('gps_denied_slam_plot.png')
+        plt.close()
+
+    return traj_data
 
 if __name__ == "__main__":
-    run_slam_simulation()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noise", type=float, default=0.08)
+    parser.add_argument("--drift", type=float, default=0.04)
+    args = parser.parse_args()
+
+    run_slam(args.noise, args.drift)

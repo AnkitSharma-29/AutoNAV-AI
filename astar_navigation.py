@@ -93,32 +93,18 @@ def astar(grid, start, end):
 
     return None # No path found
 
-def run_navigation_simulation():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--density", type=float, default=0.2)
-    parser.add_argument("--start", type=str, default="0,0")
-    parser.add_argument("--goal", type=str, default="19,19")
-    parser.add_argument("--manual_obs", type=str, default="") # "r,c;r,c;..."
-    args = parser.parse_args()
-
+def run_astar(density=0.2, start_pos=(0, 0), goal_pos=(19, 19), manual_obs_str="", save_files=True):
     # Define grid size
     grid_size = 20
     grid = np.zeros((grid_size, grid_size))
     
-    # Parse Start/Goal
-    try:
-        s_coords = [int(float(x)) for x in args.start.split(',')]
-        g_coords = [int(float(x)) for x in args.goal.split(',')]
-        # Start/Goal are (x, z) from web, map to (col, row) in A*
-        start = (s_coords[1], s_coords[0]) 
-        goal = (g_coords[1], g_coords[0])
-    except:
-        start = (0, 0)
-        goal = (19, 19)
+    # Start/Goal mapping (x, z) to (row, col)
+    start = (start_pos[1], start_pos[0]) 
+    goal = (goal_pos[1], goal_pos[0])
 
     # Add manual obstacles
-    if args.manual_obs:
-        obs_list = args.manual_obs.split(';')
+    if manual_obs_str:
+        obs_list = manual_obs_str.split(';')
         for obs in obs_list:
             if obs:
                 try:
@@ -127,71 +113,79 @@ def run_navigation_simulation():
                         grid[r, c] = 1
                 except: continue
 
-    # Define a safe zone around start and goal to prevent random obstacles from instantly failing A*
+    # Define a safe zone around start and goal
     def is_near_point(r, c, pr, pc):
         return abs(r - pr) <= 1 and abs(c - pc) <= 1
 
-    # Add random obstacles based on density
+    # Add random obstacles
     for r in range(grid_size):
         for c in range(grid_size):
             if grid[r, c] == 0:
-                # Do not place random obstacles on or immediately adjacent to Start/Goal
                 if is_near_point(r, c, start[0], start[1]) or is_near_point(r, c, goal[0], goal[1]):
                     continue
-                if random.random() < args.density:
+                if random.random() < density:
                     grid[r, c] = 1
     
-    print(f"Calculating path from {start} to {goal}...")
     path = astar(grid, start, goal)
 
+    result = {
+        "success": False,
+        "path": [],
+        "obstacles": [],
+        "start": {"x": float(start[1]), "z": float(start[0])},
+        "goal": {"x": float(goal[1]), "z": float(goal[0])}
+    }
+
+    # Populate obstacle data
+    obs_data = []
+    for r in range(grid_size):
+        for c in range(grid_size):
+            if grid[r, c] == 1:
+                obs_data.append({"x": float(c), "y": 0.5, "z": float(r)})
+    result["obstacles"] = obs_data
+
     if path:
-        print("Path found!")
-        # Export JSON data for 3D visualization
-        # Note: In 3D engine, x is col, z is row
-        traj_data = [{"x": float(p[1]), "y": 0.5, "z": float(p[0])} for p in path]
+        result["success"] = True
+        result["path"] = [{"x": float(p[1]), "y": 0.5, "z": float(p[0])} for p in path]
         
-        # Add obstacle data
-        obs_data = []
-        for r in range(grid_size):
-            for c in range(grid_size):
-                if grid[r, c] == 1:
-                    obs_data.append({"x": float(c), "y": 0.5, "z": float(r)})
-        
-        with open('astar_data.json', 'w') as f:
-            json.dump({
-                "path": traj_data, 
-                "obstacles": obs_data, 
-                "start": {"x": float(start[1]), "z": float(start[0])}, 
-                "goal": {"x": float(goal[1]), "z": float(goal[0])}
-            }, f)
-        
-        # Visualization
-        plt.figure(figsize=(10, 10))
-        plt.imshow(grid, cmap='Greys', origin='lower')
-        path_x = [p[1] for p in path]
-        path_y = [p[0] for p in path]
-        plt.plot(path_x, path_y, color='red', linewidth=3, label='A* Path')
-        plt.scatter(start[1], start[0], color='green', s=200, label='Start')
-        plt.scatter(goal[1], goal[0], color='blue', s=200, marker='*', label='Goal')
-        plt.title(f'A* Pathfinding (Density: {args.density*100}%)')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        plt.savefig('astar_navigation_plot.png')
+        if save_files:
+            with open('astar_data.json', 'w') as f:
+                json.dump(result, f)
+            
+            # Visualization
+            plt.figure(figsize=(10, 10))
+            plt.imshow(grid, cmap='Greys', origin='lower')
+            path_x = [p[1] for p in path]
+            path_y = [p[0] for p in path]
+            plt.plot(path_x, path_y, color='red', linewidth=3, label='A* Path')
+            plt.scatter(start[1], start[0], color='green', s=200, label='Start')
+            plt.scatter(goal[1], goal[0], color='blue', s=200, marker='*', label='Goal')
+            plt.title(f'A* Pathfinding (Density: {density*100}%)')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            plt.savefig('astar_navigation_plot.png')
+            plt.close()
     else:
-        print("No path found.")
-        # Even if no path, export the start/goal/obstacles so frontend can show them
-        obs_data = []
-        for r in range(grid_size):
-            for c in range(grid_size):
-                if grid[r, c] == 1:
-                    obs_data.append({"x": float(c), "y": 0.5, "z": float(r)})
-        with open('astar_data.json', 'w') as f:
-            json.dump({
-                "path": [], 
-                "obstacles": obs_data, 
-                "start": {"x": float(start[1]), "z": float(start[0])}, 
-                "goal": {"x": float(goal[1]), "z": float(goal[0])}
-            }, f)
+        if save_files:
+            with open('astar_data.json', 'w') as f:
+                json.dump(result, f)
+
+    return result
 
 if __name__ == "__main__":
-    run_navigation_simulation()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--density", type=float, default=0.2)
+    parser.add_argument("--start", type=str, default="0,0")
+    parser.add_argument("--goal", type=str, default="19,19")
+    parser.add_argument("--manual_obs", type=str, default="")
+    args = parser.parse_args()
+
+    # Parse Start/Goal for CLI compatibility
+    try:
+        s_coords = [int(float(x)) for x in args.start.split(',')]
+        g_coords = [int(float(x)) for x in args.goal.split(',')]
+    except:
+        s_coords = [0, 0]
+        g_coords = [19, 19]
+
+    run_astar(args.density, tuple(s_coords), tuple(g_coords), args.manual_obs)

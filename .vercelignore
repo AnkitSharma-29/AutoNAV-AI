@@ -1,0 +1,11 @@
+controllers/
+worlds/
+.git/
+__pycache__/
+*.pyc
+venv/
+.env
+.DS_Store
+*.png
+*_data.json
+dynamic_config.json
