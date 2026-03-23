@@ -128,7 +128,7 @@ AutoNAV-AI/
 ```bash
 python server.py
 ```
-Open [http://localhost:5000](auto-nav-ai.vercel.app) in your browser.
+Open [[auto-nav-ai.vercel.app](https://auto-nav-ai.vercel.app/)] in your browser.
 
 ### Dashboard Usage
 1. Click **📍 Set Start** → click on the grid to place the drone
