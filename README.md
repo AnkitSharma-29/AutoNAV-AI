@@ -34,6 +34,9 @@ The core path planning engine uses **Lazy Theta***, an optimized variant of Thet
 | Dijkstra (Safe) | 0.0 | standard | Guaranteed shortest path |
 | Safety-First (Advanced) | 1.5 | advanced | **Recommended** — Lazy Theta* + safety cost |
 
+![Algorithm Comparison](assets/algo_comparison.png)
+*Figure 1: Performance comparison showing Lazy Theta* achieving near-Greedy latency while producing significantly smoother, any-angle path trajectories.*
+
 ### 2. Safety Cost Map (Distance Field)
 Every cell in the 20×20 grid is assigned a proximity penalty based on distance to the nearest obstacle:
 
@@ -43,6 +46,9 @@ Every cell in the 20×20 grid is assigned a proximity penalty based on distance 
 | ≤ 2.5 cells | **80** | Very expensive — strongly discourages |
 | ≤ 4 cells | `40 / d³` | Inverse-cube falloff — gentle steering |
 | > 4 cells | **0** | Free space — no penalty |
+
+![Safety Field](assets/safety_field.png)
+*Figure 2: 3D Visualization of the Safety Cost Map. The sharp spike represents physical obstacles, while the inverse-cube gradient ensures the A* algorithm naturally curves paths away from danger zones.*
 
 This creates a **potential field** that naturally curves paths away from walls with a comfortable 4-cell buffer.
 
@@ -63,6 +69,9 @@ This ensures careful, smooth approaches instead of sudden stops.
 
 #### 🛡️ Physical Push-Out Barrier
 If the drone ever touches an obstacle (e.g., due to momentum), it is **immediately ejected 0.8m** away from the obstacle center. This is a last-resort safety net.
+
+![Local Avoidance](assets/local_avoidance.png)
+*Figure 3: Core drone reaction curve. As distance to obstacles decreases (right to left), velocity is aggressively damped (blue) while the power-3 repulsive force (red) rises sharply to push the drone away safely.*
 
 ### 4. Stuck-Proof Recovery System
 A state machine that handles edge cases:
@@ -85,6 +94,9 @@ A state machine that handles edge cases:
 A tuned PID loop maintains stable altitude:
 - **Smooth Altitude PID**: `acceleration.y = gravity + altError × 5.0` 
 - **Approach Deceleration**: Speed reduces proportionally as drone nears waypoint (`speedFactor = min(dist/4, 1)`)
+
+![PID Response](assets/pid_response.png)
+*Figure 4: Simulated step-response of the Altitude Controller. The drone executes a slight initial overshoot before quickly settling exactly at the target altitude without oscillating.*
 
 ---
 
