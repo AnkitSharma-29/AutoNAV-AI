@@ -56,7 +56,10 @@
             transition: 0.3s;
         }
 
-        .card:hover { background: rgba(30, 41, 59, 0.7); border-color: var(--accent); }
+        .card:hover {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: var(--accent);
+        }
 
         h3 {
             margin-top: 0;
@@ -103,7 +106,9 @@
             box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
         }
 
-        .sim-btn:active { transform: scale(0.98); }
+        .sim-btn:active {
+            transform: scale(0.98);
+        }
 
         .sim-btn-ai {
             background: linear-gradient(135deg, #a855f7, #7e22ce);
@@ -128,8 +133,16 @@
             font-size: 0.8rem;
         }
 
-        .hud-left { top: 25px; left: 25px; }
-        .hud-right { top: 25px; right: 25px; text-align: right; }
+        .hud-left {
+            top: 25px;
+            left: 25px;
+        }
+
+        .hud-right {
+            top: 25px;
+            right: 25px;
+            text-align: right;
+        }
 
         .toolbar {
             position: absolute;
@@ -162,21 +175,76 @@
             transition: 0.3s;
         }
 
-        .tool-btn.active { color: white; background: var(--accent); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        .tool-btn.active {
+            color: white;
+            background: var(--accent);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
 
-        .legend-text { color: #94a3b8; font-size: 0.7rem; line-height: 1.6; margin-top: 10px; }
+        .legend-text {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
 
-        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(20px); }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
 
         /* Cursor changes based on mode */
-        #viewport.mode-start canvas { cursor: crosshair !important; }
-        #viewport.mode-goal canvas { cursor: crosshair !important; }
-        #viewport.mode-obs canvas { cursor: cell !important; }
+        #viewport.mode-start canvas {
+            cursor: crosshair !important;
+        }
+
+        #viewport.mode-goal canvas {
+            cursor: crosshair !important;
+        }
+
+        #viewport.mode-obs canvas {
+            cursor: cell !important;
+        }
     </style>
 </head>
 
@@ -204,10 +272,19 @@
             <div class="controls">
                 <label>Sensing Density: <span id="astar-den-val">20%</span></label>
                 <input type="range" id="astar-den" min="5" max="45" value="20" oninput="updateVal('astar-den')">
+                <label>Algorithm: 
+                    <select id="algo-type" style="background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; padding:2px 5px; font-size:0.7rem">
+                        <option value="1.5|advanced">Safety-First (Advanced)</option>
+                        <option value="10.0|simple">Greedy A*</option>
+                        <option value="1.0|simple">Standard A*</option>
+                        <option value="0.0|simple">Dijkstra (Safe)</option>
+                    </select>
+                </label>
                 <button class="sim-btn" onclick="runSim('astar')">EXECUTE MISSION</button>
                 <button class="sim-btn sim-btn-ai" onclick="toggleAuto()" id="btn-auto">🤖 ACTIVATE BRAIN</button>
-                <div id="astar-status" class="status" style="font-size:0.8rem; color:#60a5fa; margin-top:5px; font-weight:bold">🟢 Sensing: ONLINE</div>
-                
+                <div id="astar-status" class="status"
+                    style="font-size:0.8rem; color:#60a5fa; margin-top:5px; font-weight:bold">🟢 Sensing: ONLINE</div>
+
                 <div class="legend-text">
                     <b>OMNI-SENSE 3D AVOIDANCE</b><br>
                     • 5-Ray directional scanning<br>
@@ -247,7 +324,8 @@
             <button class="tool-btn" onclick="setMode('start')" id="btn-start">📍 START</button>
             <button class="tool-btn" onclick="setMode('goal')" id="btn-goal">🏁 GOAL</button>
             <button class="tool-btn" onclick="setMode('obs')" id="btn-obs">🚧 OBSTACLE</button>
-            <button class="tool-btn" onclick="clearMarkers()" style="background:rgba(239, 68, 68, 0.15)">🗑 CLEAR</button>
+            <button class="tool-btn" onclick="clearMarkers()" style="background:rgba(239, 68, 68, 0.15)">🗑
+                CLEAR</button>
         </div>
     </div>
 
@@ -257,8 +335,8 @@
         ═══════════════════════════════════════════════════ */
         let scene, camera, renderer, drone, droneBody, fpvCamera, rainParticles, terrain, controls;
         let startMarker, goalMarker, autoObstacles = [], manualObstacles = [];
-        const collidableObjects = []; 
-        let slamPoints = []; 
+        const collidableObjects = [];
+        let slamPoints = [];
         let missionPath = [];
         let missionPathIndex = 0;
         let pathGroup = null;
@@ -267,13 +345,16 @@
         let placementMode = 'explore';
         let stuckTimer = 0;
         let isReplanning = false;
-        
+        let isRecovering = false;
+        let recoveryTimer = 0;
+        let lastReplanTime = 0;
+
         let clock = new THREE.Clock();
-        let velocity = new THREE.Vector3(0,0,0);
-        let acceleration = new THREE.Vector3(0,0,0);
+        let velocity = new THREE.Vector3(0, 0, 0);
+        let acceleration = new THREE.Vector3(0, 0, 0);
         let currentTilt = { pitch: 0, roll: 0 };
         let targetTilt = { pitch: 0, roll: 0 };
-        const DRAG = 0.95, THRUST = 45.0, TILT_SPEED = 12.0;
+        const DRAG = 0.97, THRUST = 55.0, TILT_SPEED = 12.0;
 
         let mouse = new THREE.Vector2(), raycaster = new THREE.Raycaster();
         const container = document.getElementById('viewport');
@@ -330,20 +411,20 @@
             // KEY FIX: Keyboard controls
             // ───────────────────────────────────────────────
             const keys = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false, ctrl: false };
-            window.addEventListener('keydown', (e) => { 
+            window.addEventListener('keydown', (e) => {
                 const key = e.key.toLowerCase();
-                if (key==='w'||key==='arrowup') keys.w=true; if (key==='a'||key==='arrowleft') keys.a=true;
-                if (key==='s'||key==='arrowdown') keys.s=true; if (key==='d'||key==='arrowright') keys.d=true;
-                if (key==='q') keys.q=true; if (key==='e') keys.e=true;
-                if (key==='shift') keys.shift=true; if (key==='control') keys.ctrl=true;
+                if (key === 'w' || key === 'arrowup') keys.w = true; if (key === 'a' || key === 'arrowleft') keys.a = true;
+                if (key === 's' || key === 'arrowdown') keys.s = true; if (key === 'd' || key === 'arrowright') keys.d = true;
+                if (key === 'q') keys.q = true; if (key === 'e') keys.e = true;
+                if (key === 'shift') keys.shift = true; if (key === 'control') keys.ctrl = true;
                 scene.userData.keys = keys;
             });
-            window.addEventListener('keyup', (e) => { 
+            window.addEventListener('keyup', (e) => {
                 const key = e.key.toLowerCase();
-                if (key==='w'||key==='arrowup') keys.w=false; if (key==='a'||key==='arrowleft') keys.a=false;
-                if (key==='s'||key==='arrowdown') keys.s=false; if (key==='d'||key==='arrowright') keys.d=false;
-                if (key==='q') keys.q=false; if (key==='e') keys.e=false;
-                if (key==='shift') keys.shift=false; if (key==='control') keys.ctrl=false;
+                if (key === 'w' || key === 'arrowup') keys.w = false; if (key === 'a' || key === 'arrowleft') keys.a = false;
+                if (key === 's' || key === 'arrowdown') keys.s = false; if (key === 'd' || key === 'arrowright') keys.d = false;
+                if (key === 'q') keys.q = false; if (key === 'e') keys.e = false;
+                if (key === 'shift') keys.shift = false; if (key === 'control') keys.ctrl = false;
                 scene.userData.keys = keys;
             });
 
@@ -353,9 +434,9 @@
             // DISABLE OrbitControls when in placement mode so it
             // doesn't consume the event.
             // ───────────────────────────────────────────────
-            renderer.domElement.addEventListener('click', function(e) {
+            renderer.domElement.addEventListener('click', function (e) {
                 if (placementMode === 'explore') return; // Let OrbitControls handle it
-                
+
                 const rect = renderer.domElement.getBoundingClientRect();
                 mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
                 mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -371,12 +452,12 @@
         ═══════════════════════════════════════════════════ */
         function createTerrain() {
             arenaFloor = new THREE.Mesh(
-                new THREE.PlaneGeometry(20, 20), 
+                new THREE.PlaneGeometry(20, 20),
                 new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 0.9, emissive: 0x1e3a8a, emissiveIntensity: 0.2, side: THREE.DoubleSide })
             );
-            arenaFloor.rotation.x = -Math.PI / 2; 
-            arenaFloor.receiveShadow = true; 
-            arenaFloor.name = "arena"; 
+            arenaFloor.rotation.x = -Math.PI / 2;
+            arenaFloor.receiveShadow = true;
+            arenaFloor.name = "arena";
             scene.add(arenaFloor);
 
             // INVISIBLE CLICK TARGET — covers entire viewable area
@@ -389,26 +470,26 @@
             clickPlane.name = "clickplane";
             scene.add(clickPlane);
 
-            const grid = new THREE.GridHelper(20, 20, 0x60a5fa, 0x1e293b); 
-            grid.position.y = 0.01; 
+            const grid = new THREE.GridHelper(20, 20, 0x60a5fa, 0x1e293b);
+            grid.position.y = 0.01;
             scene.add(grid);
 
-            const bgGeo = new THREE.PlaneGeometry(300, 300, 48, 48); 
+            const bgGeo = new THREE.PlaneGeometry(300, 300, 48, 48);
             const pos = bgGeo.attributes.position;
-            for (let i = 0; i < pos.count; i++) { 
-                pos.setZ(i, (Math.sqrt(pos.getX(i)**2 + pos.getY(i)**2) < 12) ? 0 : Math.sin(pos.getX(i)/15)*Math.cos(pos.getY(i)/15)*5 + (Math.sqrt(pos.getX(i)**2 + pos.getY(i)**2)-12)*0.4); 
+            for (let i = 0; i < pos.count; i++) {
+                pos.setZ(i, (Math.sqrt(pos.getX(i) ** 2 + pos.getY(i) ** 2) < 12) ? 0 : Math.sin(pos.getX(i) / 15) * Math.cos(pos.getY(i) / 15) * 5 + (Math.sqrt(pos.getX(i) ** 2 + pos.getY(i) ** 2) - 12) * 0.4);
             }
-            bgGeo.computeVertexNormals(); 
+            bgGeo.computeVertexNormals();
             terrain = new THREE.Mesh(bgGeo, new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.9, flatShading: true }));
-            terrain.rotation.x = -Math.PI / 2; 
-            terrain.position.y = -0.15; 
-            terrain.name = "terrain"; 
+            terrain.rotation.x = -Math.PI / 2;
+            terrain.position.y = -0.15;
+            terrain.name = "terrain";
             scene.add(terrain);
         }
 
         function createWeather() {
             const count = 3000; const geo = new THREE.BufferGeometry(); const posArr = new Float32Array(count * 3);
-            for (let i = 0; i < count * 3; i += 3) { posArr[i] = (Math.random()-0.5)*300; posArr[i+1] = Math.random()*100; posArr[i+2] = (Math.random()-0.5)*300; }
+            for (let i = 0; i < count * 3; i += 3) { posArr[i] = (Math.random() - 0.5) * 300; posArr[i + 1] = Math.random() * 100; posArr[i + 2] = (Math.random() - 0.5) * 300; }
             geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
             rainParticles = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x60a5fa, size: 0.14, transparent: true, opacity: 0.6 })); scene.add(rainParticles);
         }
@@ -417,19 +498,19 @@
             drone = new THREE.Group(); droneBody = new THREE.Group();
             const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.1 }));
             droneBody.add(hub);
-            const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 2.6), new THREE.MeshStandardMaterial({color:0x1e293b})); arm1.rotation.y = Math.PI/4; droneBody.add(arm1);
-            const arm2 = arm1.clone(); arm2.rotation.y = -Math.PI/4; droneBody.add(arm2);
-            [[1,1], [1,-1], [-1,1], [-1,-1]].forEach(p => {
+            const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 2.6), new THREE.MeshStandardMaterial({ color: 0x1e293b })); arm1.rotation.y = Math.PI / 4; droneBody.add(arm1);
+            const arm2 = arm1.clone(); arm2.rotation.y = -Math.PI / 4; droneBody.add(arm2);
+            [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(p => {
                 const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.02, 16), new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4, side: THREE.DoubleSide }));
-                rotor.position.set(p[0]*0.9, 0.25, p[1]*0.9); rotor.name = "rotor"; droneBody.add(rotor);
-                const glow = new THREE.PointLight(p[0]>0?0x3b82f6:0xef4444, 1, 3); glow.position.set(p[0]*1.2, 0, p[1]*1.2); droneBody.add(glow);
+                rotor.position.set(p[0] * 0.9, 0.25, p[1] * 0.9); rotor.name = "rotor"; droneBody.add(rotor);
+                const glow = new THREE.PointLight(p[0] > 0 ? 0x3b82f6 : 0xef4444, 1, 3); glow.position.set(p[0] * 1.2, 0, p[1] * 1.2); droneBody.add(glow);
             });
             // Fix FPV Camera: Drone flies towards +Z, so camera must point to +Z
             // Positioned slightly up and forward on the drone body
-            fpvCamera.position.set(0, 0.2, 0.6); 
-            fpvCamera.lookAt(0, 0, 10); 
+            fpvCamera.position.set(0, 0.2, 0.6);
+            fpvCamera.lookAt(0, 0, 10);
             droneBody.add(fpvCamera);
-            
+
             drone.add(droneBody); drone.scale.set(0.15, 0.15, 0.15); drone.position.set(0, 0.05, 0); scene.add(drone);
         }
 
@@ -439,29 +520,29 @@
            clicks go to our handler, not to orbit rotation.
         ═══════════════════════════════════════════════════ */
         function setMode(mode) {
-            placementMode = mode; 
-            
+            placementMode = mode;
+
             // Disable orbit controls when placing markers
             if (controls) {
                 controls.enabled = (mode === 'explore');
             }
-            
+
             // Update cursor style on viewport
             container.className = '';
             if (mode !== 'explore') container.classList.add('mode-' + mode);
-            
+
             // UI Button Highlighting
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             const btn = document.getElementById('btn-' + mode);
             if (btn) btn.classList.add('active');
-            
+
             // Status hint
             const status = document.getElementById('astar-status');
             const hints = {
                 'explore': '🟢 Sensing: ONLINE — Rotate/zoom freely',
-                'start':   '📍 Click on the grid to place GREEN start point',
-                'goal':    '🏁 Click on the grid to place BLUE goal point',
-                'obs':     '🚧 Click on the grid to place RED obstacles'
+                'start': '📍 Click on the grid to place GREEN start point',
+                'goal': '🏁 Click on the grid to place BLUE goal point',
+                'obs': '🚧 Click on the grid to place RED obstacles'
             };
             status.innerText = hints[mode] || '🟢 Sensing: ONLINE';
         }
@@ -472,45 +553,45 @@
         ═══════════════════════════════════════════════════ */
         function placeMarker() {
             const status = document.getElementById('astar-status');
-            
+
             // Update matrices
             camera.updateMatrixWorld();
-            
+
             // Build a ray from camera through mouse position (pure math)
             const rayOrigin = new THREE.Vector3();
             const rayDir = new THREE.Vector3();
-            
+
             // Unproject mouse NDC to world space
             const nearPoint = new THREE.Vector3(mouse.x, mouse.y, 0).unproject(camera);
-            const farPoint  = new THREE.Vector3(mouse.x, mouse.y, 1).unproject(camera);
-            
+            const farPoint = new THREE.Vector3(mouse.x, mouse.y, 1).unproject(camera);
+
             rayOrigin.copy(nearPoint);
             rayDir.copy(farPoint).sub(nearPoint).normalize();
-            
+
             // Intersect with y=0 ground plane (simple math: t = -origin.y / dir.y)
             if (Math.abs(rayDir.y) < 0.0001) {
                 // Ray is parallel to ground — extremely rare
                 status.innerText = '⚠️ Point camera downward and try again.';
                 return;
             }
-            
+
             const t = -rayOrigin.y / rayDir.y;
-            
+
             if (t < 0) {
                 // Intersection is behind camera
                 status.innerText = '⚠️ Click on the grid area.';
                 return;
             }
-            
+
             // Compute the 3D hit point on the y=0 plane
             const hitX = rayOrigin.x + rayDir.x * t;
             const hitZ = rayOrigin.z + rayDir.z * t;
-            
+
             processHit(new THREE.Vector3(hitX, 0, hitZ), status);
         }
 
 
-        
+
         function processHit(pt, status) {
             // Clamp to grid instead of rejecting — much easier to use!
             let gx = Math.floor(pt.x) + 0.5;
@@ -523,16 +604,16 @@
 
             if (placementMode === 'start') {
                 if (startMarker) scene.remove(startMarker);
-                
+
                 // Green glowing pillar — uses MeshBasicMaterial (no lighting needed)
                 startMarker = new THREE.Group();
                 const pillar = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.25, 0.25, 6, 16), 
+                    new THREE.CylinderGeometry(0.25, 0.25, 6, 16),
                     new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.7 })
                 );
                 pillar.position.y = 3; // Center the 6-unit tall cylinder
                 startMarker.add(pillar);
-                
+
                 // Glowing sphere on top
                 const sphere = new THREE.Mesh(
                     new THREE.SphereGeometry(0.4, 16, 16),
@@ -540,33 +621,33 @@
                 );
                 sphere.position.y = 6.2;
                 startMarker.add(sphere);
-                
+
                 // Green point light
                 const light = new THREE.PointLight(0x22c55e, 3, 15);
                 light.position.y = 3;
                 startMarker.add(light);
-                
+
                 startMarker.position.set(gx, 0, gz);
                 scene.add(startMarker);
-                
+
                 // Move drone to start (exactly on ground)
                 drone.position.set(gx, 0.05, gz);
-                velocity.set(0,0,0);
-                
+                velocity.set(0, 0, 0);
+
                 status.innerText = `✅ START placed at Grid(${backendX}, ${backendZ})`;
-                
+
             } else if (placementMode === 'goal') {
                 if (goalMarker) scene.remove(goalMarker);
-                
+
                 // Blue glowing pillar
                 goalMarker = new THREE.Group();
                 const pillar = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.25, 0.25, 10, 16), 
+                    new THREE.CylinderGeometry(0.25, 0.25, 10, 16),
                     new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.7 })
                 );
                 pillar.position.y = 5;
                 goalMarker.add(pillar);
-                
+
                 // Blue box on top (goal flag)
                 const flag = new THREE.Mesh(
                     new THREE.BoxGeometry(0.6, 0.6, 0.6),
@@ -574,28 +655,28 @@
                 );
                 flag.position.y = 10.5;
                 goalMarker.add(flag);
-                
+
                 // Blue point light
                 const light = new THREE.PointLight(0x3b82f6, 3, 15);
                 light.position.y = 5;
                 goalMarker.add(light);
-                
+
                 goalMarker.position.set(gx, 0, gz);
                 scene.add(goalMarker);
-                
+
                 status.innerText = `✅ GOAL placed at Grid(${backendX}, ${backendZ})`;
-                
+
             } else if (placementMode === 'obs') {
                 const h = 3 + Math.random() * 3;
                 const obs = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.9, h, 0.9), 
+                    new THREE.BoxGeometry(0.9, h, 0.9),
                     new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85 })
                 );
                 obs.position.set(gx, h / 2, gz);
                 scene.add(obs);
                 manualObstacles.push({ x: backendX, z: backendZ, mesh: obs });
                 collidableObjects.push(obs);
-                
+
                 status.innerText = `🚧 Obstacle at Grid(${backendX}, ${backendZ})`;
             }
         }
@@ -606,24 +687,24 @@
         function clearMarkers() {
             if (startMarker) { scene.remove(startMarker); startMarker = null; }
             if (goalMarker) { scene.remove(goalMarker); goalMarker = null; }
-            
+
             manualObstacles.forEach(o => { if (o.mesh) scene.remove(o.mesh); });
             autoObstacles.forEach(o => { scene.remove(o); });
             manualObstacles = [];
             autoObstacles = [];
             collidableObjects.length = 0;
-            
-            slamPoints.forEach(p => scene.remove(p)); 
+
+            slamPoints.forEach(p => scene.remove(p));
             slamPoints = [];
 
             if (pathGroup) scene.remove(pathGroup);
             missionPath = [];
             pathDots = [];
-            
-            isManualCrash = isAutoPilot = false; 
-            velocity.set(0,0,0);
+
+            isManualCrash = isAutoPilot = false;
+            velocity.set(0, 0, 0);
             drone.position.set(0, 0.05, 0);
-            
+
             document.getElementById('astar-status').innerText = '🗑️ Cleared all markers. Ready.';
             setMode('explore');
         }
@@ -634,7 +715,7 @@
             pathDots = [];
             missionPath = [];
             missionPathIndex = 0;
-            
+
             pathData.forEach((p, idx) => {
                 // glowing dots indicating AI topological mapping
                 const dot = new THREE.Mesh(
@@ -644,7 +725,7 @@
                 dot.position.set(p.x - 9.5, 0.6, p.z - 9.5); // Float slightly above ground
                 dot.userData = { offset: idx * 0.3 };
                 pathGroup.add(dot);
-                
+
                 pathDots.push({ mesh: dot, visited: false });
                 missionPath.push(new THREE.Vector3(p.x - 9.5, 3.5, p.z - 9.5));
             });
@@ -653,28 +734,35 @@
 
         function replanPath() {
             if (isReplanning) return;
+            // COOLDOWN: Minimum 3 seconds between replans to prevent oscillation
+            const now = performance.now();
+            if (now - lastReplanTime < 3000) return;
+            lastReplanTime = now;
             isReplanning = true;
             document.getElementById('astar-status').innerText = '🔄 BRAIN REPLANNING...';
             document.getElementById('astar-status').style.color = "#f59e0b";
-            
+
             // Map drone's actual world coordinates to the backend A* (0-19) grid
             const currentGridX = Math.max(0, Math.min(19, Math.round(drone.position.x + 9.5)));
             const currentGridZ = Math.max(0, Math.min(19, Math.round(drone.position.z + 9.5)));
-            
-            let params = `?density=${document.getElementById('astar-den').value/100}`;
+
+            const algoParts = document.getElementById('algo-type').value.split('|');
+            const weight = algoParts[0];
+            const mode = algoParts[1] || 'advanced';
+            let params = `?density=${document.getElementById('astar-den').value / 100}&weight=${weight}&mode=${mode}`;
             params += `&start=${currentGridX},${currentGridZ}`;
-            if (goalMarker) params += `&goal=${Math.floor(goalMarker.position.x+10)},${Math.floor(goalMarker.position.z+10)}`;
+            if (goalMarker) params += `&goal=${Math.floor(goalMarker.position.x + 10)},${Math.floor(goalMarker.position.z + 10)}`;
             const obsStr = manualObstacles.map(o => `${o.x},${o.z}`).join(';');
             if (obsStr) params += `&manual_obs=${obsStr}`;
 
             fetch(`/run/astar${params}`).then(res => res.json()).then(data => {
-                if (!data.success) { 
-                    document.getElementById('astar-status').innerText = '⚠️ REPLAN FAILED'; 
+                if (!data.success) {
+                    document.getElementById('astar-status').innerText = '⚠️ REPLAN FAILED';
                     isReplanning = false;
-                    return; 
+                    return;
                 }
                 const sim = data.data;
-                const path = sim.path || sim; 
+                const path = sim.path || sim;
                 if (path.length === 0) {
                     document.getElementById('astar-status').innerText = '⛔ NO PATH AVAILABLE';
                     document.getElementById('astar-status').style.color = "#ef4444";
@@ -684,7 +772,7 @@
                 drawPath(path);
                 document.getElementById('astar-status').innerText = '✅ NEW PATH FOUND';
                 document.getElementById('astar-status').style.color = "#34d399";
-                
+
                 stuckTimer = 0; // Reset blockage timer
                 isReplanning = false;
             }).catch(() => { isReplanning = false; });
@@ -699,9 +787,12 @@
 
         function runSim(type) {
             const status = document.getElementById(type + '-status'); status.innerText = 'Initializing...';
-            let params = `?density=${document.getElementById('astar-den').value/100}`;
-            if (startMarker) params += `&start=${Math.floor(startMarker.position.x+10)},${Math.floor(startMarker.position.z+10)}`;
-            if (goalMarker) params += `&goal=${Math.floor(goalMarker.position.x+10)},${Math.floor(goalMarker.position.z+10)}`;
+            const algoParts = (type === 'astar') ? document.getElementById('algo-type').value.split('|') : ['10.0', 'advanced'];
+            const weight = algoParts[0];
+            const mode = algoParts[1] || 'advanced';
+            let params = `?density=${document.getElementById('astar-den').value / 100}&weight=${weight}&mode=${mode}`;
+            if (startMarker) params += `&start=${Math.floor(startMarker.position.x + 10)},${Math.floor(startMarker.position.z + 10)}`;
+            if (goalMarker) params += `&goal=${Math.floor(goalMarker.position.x + 10)},${Math.floor(goalMarker.position.z + 10)}`;
             const obsStr = manualObstacles.map(o => `${o.x},${o.z}`).join(';');
             if (obsStr) params += `&manual_obs=${obsStr}`;
             if (type === 'pid') params += `&altitude=${document.getElementById('pid-alt').value}`;
@@ -710,15 +801,15 @@
                 if (!data.success) { status.innerText = 'Error!'; return; }
                 const sim = data.data;
                 const path = sim.path || sim; if (path.length === 0 && type === 'astar') return status.innerText = 'Blocked!';
-                
+
                 if (type === 'astar') drawPath(path);
 
                 if (document.getElementById('auto-obs-toggle').checked && sim.obstacles) {
                     autoObstacles.forEach(o => scene.remove(o)); autoObstacles = [];
                     sim.obstacles.forEach(o => {
-                        const h = 2 + Math.random()*3;
-                        const obs = new THREE.Mesh(new THREE.BoxGeometry(1.1, h, 1.1), new THREE.MeshStandardMaterial({color: 0x334155}));
-                        obs.position.set(o.x - 9.5, h/2, o.z - 9.5); scene.add(obs); autoObstacles.push(obs); collidableObjects.push(obs); 
+                        const h = 2 + Math.random() * 3;
+                        const obs = new THREE.Mesh(new THREE.BoxGeometry(1.1, h, 1.1), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+                        obs.position.set(o.x - 9.5, h / 2, o.z - 9.5); scene.add(obs); autoObstacles.push(obs); collidableObjects.push(obs);
                     });
                 }
                 status.innerText = 'Sim Active'; isAutoPilot = true; toggleAuto();
@@ -754,11 +845,11 @@
 
             if (drone && !isManualCrash) {
                 const k = scene.userData.keys; const dir = new THREE.Vector3(); drone.getWorldDirection(dir);
-                const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dir).normalize();
-                const up = new THREE.Vector3(0,1,0);
-                
-                let avoidanceVector = new THREE.Vector3(0,0,0);
-                
+                const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
+                const up = new THREE.Vector3(0, 1, 0);
+
+                let avoidanceVector = new THREE.Vector3(0, 0, 0);
+
                 // Enhanced 3D Omni-Sensors for strict obstacle clearance
                 const OMNI_SENSORS = [
                     { dir: dir.clone(), force: dir.clone().multiplyScalar(-1.5) }, // Forward
@@ -773,35 +864,82 @@
                 ];
 
                 let proximityWarning = false;
+                let clearestDir = dir.clone();
+                let maxDist = 0;
+                let closestObsDist = 8.0;
+
                 OMNI_SENSORS.forEach(s => {
-                    raycaster.set(drone.position, s.dir); 
-                    raycaster.far = 4.0; // Increased sensor range to keep drone far from obstacles
+                    raycaster.set(drone.position, s.dir);
+                    raycaster.far = 8.0;  // Extended range for early detection
                     const hits = raycaster.intersectObjects(collidableObjects);
+                    const dist = (hits.length > 0) ? hits[0].distance : 8.0;
+                    
+                    if (dist > maxDist) {
+                        maxDist = dist;
+                        clearestDir.copy(s.dir);
+                    }
+                    
+                    if (dist < closestObsDist) closestObsDist = dist;
+
                     if (hits.length > 0) {
-                        const dist = hits[0].distance; 
-                        // Massive repulsion force if too close (exponential) to prevent squeezing
-                        const intensity = Math.pow((4.0 - dist) / 4.0, 3) * 80.0;
+                        // Smooth power-3 curve for gradual, early repulsion
+                        const intensity = Math.pow((8.0 - dist) / 8.0, 3) * 200.0;
                         avoidanceVector.addScaledVector(s.force, intensity * dt);
-                        if (dist < 1.5) proximityWarning = true; // Stricter proximity warning
+                        if (dist < 3.5) proximityWarning = true;
                     }
                 });
 
-                // HARD COLLISION DETECTION
+                // SMOOTH VELOCITY DAMPING near obstacles — the closer, the slower
+                if (closestObsDist < 4.0) {
+                    const dampFactor = 0.55 + 0.45 * (closestObsDist / 4.0); // 0.55 to 1.0
+                    velocity.x *= dampFactor;
+                    velocity.z *= dampFactor;
+                }
+
+                // RECOVERY STATE MACHINE
+                if (stuckTimer > 1.5 && !isRecovering) {
+                    isRecovering = true;
+                    recoveryTimer = 1.2; // Back up for 1.2 seconds
+                    console.log("EMERGENCY RECOVERY: Backing up...");
+                }
+
+                if (isRecovering) {
+                    recoveryTimer -= dt;
+                    // Move backward and slightly away from obstacles
+                    acceleration.addScaledVector(dir, -THRUST * 0.2 * dt);
+                    acceleration.addScaledVector(avoidanceVector, 0.5 * dt);
+                    targetTilt.pitch = -0.15;
+                    
+                    if (recoveryTimer <= 0) {
+                        isRecovering = false;
+                        stuckTimer = 0;
+                        replanPath(); // Replan after backup
+                    }
+                }
+
+                // HARD COLLISION DETECTION + PHYSICAL PUSH-OUT
                 let isCrashed = false;
                 const droneBox = new THREE.Box3().setFromObject(drone);
-                droneBox.expandByScalar(-0.1); // Slight tolerance
                 for (let i = 0; i < collidableObjects.length; i++) {
                     const obsBox = new THREE.Box3().setFromObject(collidableObjects[i]);
                     if (droneBox.intersectsBox(obsBox)) {
                         isCrashed = true;
+                        // PHYSICAL PUSH-OUT: Eject drone away from obstacle center
+                        const obsCenter = new THREE.Vector3();
+                        obsBox.getCenter(obsCenter);
+                        const pushDir = new THREE.Vector3().subVectors(drone.position, obsCenter);
+                        pushDir.y = 0; // Keep horizontal
+                        pushDir.normalize();
+                        // Move drone outside the obstacle box
+                        drone.position.addScaledVector(pushDir, 0.8);
+                        velocity.x = pushDir.x * 2; // Bounce velocity
+                        velocity.z = pushDir.z * 2;
                         break;
                     }
                 }
 
                 if (isCrashed) {
-                    // Absolute Physics Stop
-                    velocity.x = 0; velocity.z = 0;
-                    avoidanceVector.copy(dir.clone().multiplyScalar(-50.0 * dt)); // Fierce bounce back
+                    avoidanceVector.copy(dir.clone().multiplyScalar(-50.0 * dt));
                     document.getElementById('hud-proximity').innerText = "COLLISION!";
                     document.getElementById('hud-proximity').style.color = "#ef4444";
                 } else {
@@ -809,8 +947,8 @@
                     document.getElementById('hud-proximity').style.color = proximityWarning ? "#f59e0b" : "#34d399";
                 }
 
-                acceleration.set(0,0,0);
-                
+                acceleration.set(0, 0, 0);
+
                 // Gravity
                 const GRAVITY = -9.81 * 2.0; // Scaled for simulation feel
                 acceleration.y += GRAVITY * dt;
@@ -820,20 +958,20 @@
                     let hoverThrust = 9.81 * 2.0; // Counteract gravity for hover
                     if (k.shift) hoverThrust += 15.0; // Climb
                     if (k.ctrl) hoverThrust -= 10.0; // Descend
-                    
+
                     acceleration.y += hoverThrust * dt;
 
-                    if (k.w) acceleration.addScaledVector(dir, THRUST * 0.5 * dt); 
+                    if (k.w) acceleration.addScaledVector(dir, THRUST * 0.5 * dt);
                     if (k.s) acceleration.addScaledVector(dir, -THRUST * 0.5 * dt);
-                    if (k.a) acceleration.addScaledVector(right, THRUST * 0.5 * dt); 
+                    if (k.a) acceleration.addScaledVector(right, THRUST * 0.5 * dt);
                     if (k.d) acceleration.addScaledVector(right, -THRUST * 0.5 * dt);
-                    if (k.q) drone.rotation.y += 3 * dt; 
+                    if (k.q) drone.rotation.y += 3 * dt;
                     if (k.e) drone.rotation.y -= 3 * dt;
                 } else if (isAutoPilot && goalMarker) {
                     // Autonomous Navigation Physics (Algorithm Guided)
-                    let target = goalMarker.position.clone(); 
+                    let target = goalMarker.position.clone();
                     const desiredAltitude = 3.5; // Safety cruise altitude
-                    
+
                     // Consume waypoint path logic
                     if (missionPath && missionPathIndex < missionPath.length) {
                         target = missionPath[missionPathIndex].clone();
@@ -846,10 +984,10 @@
                             missionPathIndex++;
                         }
                     }
-                    
+
                     if (drone.position.y < desiredAltitude - 0.5 && drone.position.distanceTo(new THREE.Vector3(target.x, drone.position.y, target.z)) > 1.5) {
                         // TAKEOFF PHASE: Ascend vertically to safety altitude first smoothly
-                        acceleration.y += (9.81 * 2.0 + 8.0) * dt; 
+                        acceleration.y += (9.81 * 2.0 + 8.0) * dt;
                         targetTilt.pitch = 0; targetTilt.roll = 0;
                         // Brake horizontal velocity during takeoff
                         velocity.x *= 0.90; velocity.z *= 0.90;
@@ -861,29 +999,46 @@
                         const distToTarget = drone.position.distanceTo(new THREE.Vector3(target.x, drone.position.y, target.z));
                         if (distToTarget > 1.0) {
                             const lookDir = new THREE.Vector3(target.x, drone.position.y, target.z).sub(drone.position).normalize();
-                            
+
                             // Rotate towards target (yaw)
-                            const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), lookDir);
-                            drone.quaternion.slerp(targetQuat, 3 * dt); 
-                            
+                            const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), lookDir);
+                            drone.quaternion.slerp(targetQuat, 3 * dt);
+
+                            // --- SIMPLE FORWARD LOOK-AHEAD ---
+                            // Single raycast forward to check if path ahead is blocked
+                            raycaster.set(drone.position, lookDir);
+                            raycaster.far = 4.0;
+                            const pathHits = raycaster.intersectObjects(collidableObjects);
+                            if (pathHits.length > 0 && pathHits[0].distance < 2.5 && !isReplanning) {
+                                replanPath();
+                            }
+                            // ----------------------------------
+
                             const forwardAvoidance = avoidanceVector.dot(dir); // Negative means pushing backward
-                            
+                            const sideAvoidance = avoidanceVector.dot(right); // Lateral pressure
+
                             // Accelerate forward only if we are mostly facing the target and not blocked
                             if (dir.dot(lookDir) > 0.6 && forwardAvoidance > -5.0 && !isCrashed && !isReplanning) {
                                 // Decelerate as we get closer (approach maneuver)
                                 const speedFactor = Math.min(distToTarget / 4.0, 1.0);
-                                // Slower thrust for easy viewing
-                                acceleration.addScaledVector(dir, THRUST * 0.15 * speedFactor * dt);
-                                targetTilt.pitch = 0.20 * speedFactor; // Less crazy tilt
-                                stuckTimer = 0; // We are moving freely
+                                acceleration.addScaledVector(dir, THRUST * 0.40 * speedFactor * dt);
+                                targetTilt.pitch = 0.20 * speedFactor;
+                                stuckTimer = 0;
                             } else if (forwardAvoidance <= -5.0 || isCrashed) {
-                                // Active braking when blocked
+                                // ACTIVE EVASION: When blocked forward, try to "slip" sideways
                                 velocity.x *= 0.8; velocity.z *= 0.8;
-                                targetTilt.pitch = -0.20; // Tilt backward to brake
+                                targetTilt.pitch = -0.1;
                                 
+                                // PROACTIVE STEERING: Use the "clearest sector" to decide which way to slip
+                                const slipDir = clearestDir.clone().projectOnVector(right).normalize();
+                                const slipForce = slipDir.dot(right) > 0 ? 1 : -1;
+                                
+                                acceleration.addScaledVector(right, slipForce * THRUST * 0.25 * dt);
+                                targetTilt.roll = slipForce * 0.2;
+
                                 // Dynamic replanning brain 
                                 stuckTimer += dt;
-                                if (stuckTimer > 0.8 && !isReplanning) { // Thinks extremely fast (0.8s reaction)
+                                if (stuckTimer > 2.5 && !isReplanning) {
                                     replanPath();
                                     stuckTimer = 0;
                                 }
@@ -899,33 +1054,33 @@
                     }
                 } else {
                     // Hover in place (Idle)
-                    acceleration.y += (9.81 * 2.0) * dt; 
+                    acceleration.y += (9.81 * 2.0) * dt;
                     targetTilt.pitch = 0; targetTilt.roll = 0;
                     velocity.x *= 0.95; velocity.z *= 0.95;
                 }
 
                 // Apply Physics Integration
                 velocity.add(acceleration).add(avoidanceVector.multiplyScalar(dt));
-                
+
                 // Air drag (friction) to prevent infinite speeding
-                velocity.multiplyScalar(0.95); 
-                
+                velocity.multiplyScalar(0.95);
+
                 // Realistic slow-moving scale 
-                drone.position.add(velocity.clone().multiplyScalar(dt * 0.8)); 
+                drone.position.add(velocity.clone().multiplyScalar(dt * 0.8));
 
                 // Ground Collision
                 if (drone.position.y <= 0.05) {
                     drone.position.y = 0.05;
                     velocity.y = 0;
                 }
-                
+
                 // Update Tilt Visualizer based on local velocity
-                const localVel = velocity.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -drone.rotation.y);
+                const localVel = velocity.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -drone.rotation.y);
                 if (!isAutoPilot) {
-                    targetTilt.pitch = -localVel.z * 1.5; 
+                    targetTilt.pitch = -localVel.z * 1.5;
                     targetTilt.roll = localVel.x * 1.5;
                 }
-                
+
                 currentTilt.pitch = THREE.MathUtils.lerp(currentTilt.pitch, targetTilt.pitch, TILT_SPEED * dt);
                 currentTilt.roll = THREE.MathUtils.lerp(currentTilt.roll, targetTilt.roll, TILT_SPEED * dt);
                 droneBody.rotation.x = currentTilt.pitch; droneBody.rotation.z = currentTilt.roll;
@@ -956,4 +1111,5 @@
         init3D();
     </script>
 </body>
+
 </html>

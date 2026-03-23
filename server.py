@@ -34,6 +34,8 @@ def run_simulation(sim_type):
         start_str = request.args.get('start', '0,0')
         goal_str = request.args.get('goal', '19,19')
         manual_obs = request.args.get('manual_obs', '')
+        weight = float(request.args.get('weight', '10.0'))
+        mode = request.args.get('mode', 'advanced')
         
         try:
             start = tuple(int(float(x)) for x in start_str.split(','))
@@ -41,7 +43,7 @@ def run_simulation(sim_type):
         except:
             start, goal = (0, 0), (19, 19)
             
-        data = run_astar(density, start, goal, manual_obs, save_files=save_files)
+        data = run_astar(density, start, goal, manual_obs, save_files=save_files, weight=weight, mode=mode)
         return jsonify({'success': True, 'data': data})
         
     elif sim_type == 'slam':

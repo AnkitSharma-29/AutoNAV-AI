@@ -19,81 +19,145 @@ class Node:
     def __lt__(self, other):
         return self.f < other.f
 
-def astar(grid, start, end):
-    # Weighted A* for faster discovery
-    weight = 3.0
-    
-    # Create start and end nodes
-    start_node = Node(start, None)
-    end_node = Node(end, None)
+def line_of_sight(grid, p1, p2):
+    """
+    Bresenham's line algorithm to check if there's a clear path between p1 and p2.
+    """
+    x0, y0 = p1
+    x1, y1 = p2
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+    x, y = x0, y0
+    n = 1 + dx + dy
+    x_inc = 1 if x1 > x0 else -1
+    y_inc = 1 if y1 > y0 else -1
+    error = dx - dy
+    dx *= 2
+    dy *= 2
 
-    # Initialize open and closed lists
+    for _ in range(n):
+        if grid[x][y] != 0:
+            return False
+        if error > 0:
+            x += x_inc
+            error -= dy
+        elif error < 0:
+            y += y_inc
+            error += dx
+        else:
+            # error == 0, diagonal step
+            x += x_inc
+            y += y_inc
+            error += dx - dy
+        if x == x1 and y == y1:
+            break
+    return True
+
+def get_safety_cost(grid, pos, safety_radius=4):
+    """
+    Returns a high cost penalty for cells near obstacles.
+    Uses inverse-cube for aggressive distance-keeping.
+    """
+    r, c = pos
+    min_dist = safety_radius + 1
+    
+    for dr in range(-safety_radius, safety_radius + 1):
+        for dc in range(-safety_radius, safety_radius + 1):
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
+                if grid[nr][nc] != 0:
+                    dist = (dr**2 + dc**2)**0.5
+                    if dist < min_dist:
+                        min_dist = dist
+    
+    if min_dist <= 1.5: return 200.0   # Near-impassable: too close to wall
+    if min_dist <= 2.5: return 80.0    # Very expensive: uncomfortably close
+    if min_dist <= safety_radius:
+        return 40.0 / (min_dist**3)    # Inverse-cube: gentle falloff at distance
+    return 0.0
+
+def astar(grid, start, end, weight=1.5, mode='advanced'):
+    """
+    Corrected Lazy Theta* with proper LoS fallback.
+    When the lazy LoS assumption fails, re-parent through the best closed neighbor.
+    """
+    start_node = Node(start)
+    end_node = Node(end)
+    start_node.parent = start_node
+    start_node.g = 0
+    
     open_list = []
     closed_list = set()
-
-    # Add start node to open list
+    open_dict = {start: start_node}
+    closed_nodes = {start: start_node}  # Track actual Node objects in closed set
+    
     heapq.heappush(open_list, start_node)
-
-    # Loop until the goal is found
+    
     while open_list:
-        # Get the current node
         current_node = heapq.heappop(open_list)
-        closed_list.add(current_node.position)
+        if current_node.position in closed_list: continue
+        
+        # --- LAZY THETA* CORRECTION ---
+        if current_node.position != start and mode == 'advanced':
+            parent = current_node.parent
+            if not line_of_sight(grid, parent.position, current_node.position):
+                # LoS failed! Re-parent through best closed-list neighbor
+                best_g = float('inf')
+                best_parent = None
+                for dr, dc in [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(-1,1),(1,-1),(1,1)]:
+                    nb = (current_node.position[0]+dr, current_node.position[1]+dc)
+                    if nb in closed_nodes:
+                        step = 1.414 if (dr!=0 and dc!=0) else 1.0
+                        candidate_g = closed_nodes[nb].g + step + get_safety_cost(grid, current_node.position)
+                        if candidate_g < best_g:
+                            best_g = candidate_g
+                            best_parent = closed_nodes[nb]
+                if best_parent:
+                    current_node.parent = best_parent
+                    current_node.g = best_g
+                    current_node.f = current_node.g + (weight * current_node.h)
+        # ------------------------------
 
-        # Found the goal
+        closed_list.add(current_node.position)
+        closed_nodes[current_node.position] = current_node
+
         if current_node.position == end_node.position:
             path = []
-            while current_node:
-                path.append(current_node.position)
-                current_node = current_node.parent
-            return path[::-1] # Return reversed path
+            curr = current_node
+            while curr.parent != curr:
+                path.append(curr.position)
+                curr = curr.parent
+            path.append(start)
+            return path[::-1]
 
-        # Generate children
-        children = []
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]: # 8-way movement
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+        for dr, dc in [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(-1,1),(1,-1),(1,1)]:
+            node_pos = (current_node.position[0]+dr, current_node.position[1]+dc)
+            if not (0 <= node_pos[0] < len(grid) and 0 <= node_pos[1] < len(grid[0])): continue
+            if grid[node_pos[0]][node_pos[1]] != 0: continue
+            if node_pos in closed_list: continue
 
-            # Within range
-            if node_position[0] > (len(grid) - 1) or node_position[0] < 0 or node_position[1] > (len(grid[len(grid)-1]) - 1) or node_position[1] < 0:
-                continue
+            parent = current_node.parent
+            # LAZY ASSUMPTION: Assume LoS from grandparent
+            if mode == 'advanced':
+                new_g = parent.g + ((parent.position[0]-node_pos[0])**2 + (parent.position[1]-node_pos[1])**2)**0.5
+                new_g += get_safety_cost(grid, node_pos)
+                new_parent = parent
+            else:
+                step_cost = 1.414 if (dr!=0 and dc!=0) else 1.0
+                new_g = current_node.g + step_cost
+                new_parent = current_node
 
-            # Check if wall/obstacle
-            if grid[node_position[0]][node_position[1]] != 0:
-                continue
+            if node_pos not in open_dict or new_g < open_dict[node_pos].g:
+                child = Node(node_pos, new_parent)
+                child.g = new_g
+                dx, dy = abs(node_pos[0]-end_node.position[0]), abs(node_pos[1]-end_node.position[1])
+                child.h = (dx**2 + dy**2)**0.5
+                child.f = child.g + (weight * child.h)
+                open_dict[node_pos] = child
+                heapq.heappush(open_list, child)
+    return None
 
-            # Create new node
-            new_node = Node(node_position, current_node)
-            children.append(new_node)
-
-        # Loop through children
-        for child in children:
-            if child.position in closed_list:
-                continue
-
-            # Calculate costs
-            # Octile distance for 8-way movement
-            dx = abs(child.position[0] - end_node.position[0])
-            dy = abs(child.position[1] - end_node.position[1])
-            
-            step_dx = abs(child.position[0] - current_node.position[0])
-            step_dy = abs(child.position[1] - current_node.position[1])
-            step_cost = 1.414 if (step_dx == 1 and step_dy == 1) else 1.0
-            
-            child.g = current_node.g + step_cost
-            child.h = (dx + dy) + (1.414 - 2) * min(dx, dy)
-            # Ultra-weighted A* (Weight = 10.0) for near-instant execution
-            child.f = child.g + (10.0 * child.h)
-
-            # Is child already in open list with lower cost?
-            if any(open_node.position == child.position and child.g > open_node.g for open_node in open_list):
-                continue
-
-            # Add to open list
-            heapq.heappush(open_list, child)
-
-    return None # No path found
-
-def run_astar(density=0.2, start_pos=(0, 0), goal_pos=(19, 19), manual_obs_str="", save_files=True):
+def run_astar(density=0.2, start_pos=(0, 0), goal_pos=(19, 19), manual_obs_str="", save_files=True, weight=10.0, mode='advanced'):
     # Define grid size
     grid_size = 20
     grid = np.zeros((grid_size, grid_size))
@@ -126,7 +190,7 @@ def run_astar(density=0.2, start_pos=(0, 0), goal_pos=(19, 19), manual_obs_str="
                 if random.random() < density:
                     grid[r, c] = 1
     
-    path = astar(grid, start, goal)
+    path = astar(grid, start, goal, weight=weight, mode=mode)
 
     result = {
         "success": False,
