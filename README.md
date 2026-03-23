@@ -102,7 +102,7 @@ A tuned PID loop maintains stable altitude:
 
 ## 🏗️ Project Structure
 
-```
+```text
 AutoNAV-AI/
 ├── server.py                 # Flask server (Vercel-compatible)
 ├── astar_navigation.py       # Lazy Theta* pathfinding engine
@@ -120,15 +120,27 @@ AutoNAV-AI/
 
 ## 🏁 Getting Started
 
-### Requirements
+### 1. Requirements
+Ensure you have the following installed to run the whole repository:
 - **Python 3.10+**
-- **Dependencies**: `pip install flask numpy matplotlib`
+- **Webots** (Version **R2023b** is specifically used and required for physics compatibility)
+- **Dependencies**: `pip install flask numpy matplotlib` (or `pip install -r requirements.txt`)
 
-### Run Locally
-```bash
-python server.py
-```
-Open [[auto-nav-ai.vercel.app](https://auto-nav-ai.vercel.app/)] in your browser.
+### 2. Running the Complete System (Webots + Dashboard)
+
+To run the whole repository and see the drone in action alongside the live telemetry dashboard, follow these steps:
+
+1. **Start Webots R2023b**: Launch the Webots simulator on your machine.
+2. **Load a World**: Go to `File > Open World` and select one of the following:
+   - `worlds/underground_tunnel.wbt`: For GPS-denied SLAM testing.
+   - `worlds/obstacle_course.wbt`: For A* navigation testing.
+   *Tip: Pause the simulation initially if it auto-plays.*
+3. **Start the Dashboard Server**: Open a terminal in the project directory and run the Flask server:
+   ```bash
+   python server.py
+   ```
+4. **Access the Web UI**: Open your web browser and navigate to [http://localhost:5000](http://localhost:5000) to monitor the system.
+5. **Run the Simulation**: Press the **Play** button in Webots. The drone will start autonomous navigation, and the web dashboard will update with real-time telemetry, SLAM map, and A* paths.
 
 ### Dashboard Usage
 1. Click **📍 Set Start** → click on the grid to place the drone
@@ -160,7 +172,7 @@ Or import `AnkitSharma-29/AutoNAV-AI` from the [Vercel Dashboard](https://vercel
 
 ## 🔬 How It Works (Flow Diagram)
 
-```
+```text
 User Sets Goal
      │
      ▼
